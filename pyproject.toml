@@ -1,0 +1,26 @@
+[project]
+name = "benchkit"
+version = "0.1.0"
+description = "Multi-benchmark orchestration: experiment/trial/attempt lifecycle with reproducible evaluation"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.0",
+]
+
+[project.optional-dependencies]
+api = ["flask>=2.0"]
+test = ["pytest>=7.0"]
+
+[project.scripts]
+benchkit = "benchkit.cli.main:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

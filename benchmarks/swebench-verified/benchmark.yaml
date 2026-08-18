@@ -1,0 +1,21 @@
+benchmark:
+  id: swebench-verified
+  version: 1.0.0
+  input:
+    source: dataset
+    adapter: benchkit.runner.swebench
+  execution:
+    protocol: openai-chat
+    timeout_seconds: 1800
+    checkpoint: per-instance
+  evaluation:
+    command: docker run --rm -v ${CANONICAL_DIR}:/in swebench/evaluator:latest
+    image_digest: sha256:placeholder
+    version: 1.2.3
+  metrics:
+    - name: resolved
+      direction: maximize
+    - name: resolved_normalized
+      direction: maximize
+  output_schema:
+    file: schemas/swebench-summary.json

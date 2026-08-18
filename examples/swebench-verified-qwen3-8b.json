@@ -1,0 +1,15 @@
+{
+  "experiment_id": "exp-20260817-001",
+  "benchmark_id": "swebench-verified",
+  "benchmark_version": "1.0.0",
+  "dataset_fingerprint": "sha256:00000000",
+  "endpoint": "http://spark1.local:8000/v1",
+  "seed": 0,
+  "workers": 4,
+  "models": [
+    {"model_id": "huggingface:Qwen/Qwen3-8B", "model_revision": "main", "precision": "nvfp4"}
+  ],
+  "configs": [
+    {"server": {"tp": 1, "max_model_len": 8192}, "client": {"max_tokens": 2048, "temperature": 0.0}}
+  ]
+}

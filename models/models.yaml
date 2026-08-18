@@ -1,0 +1,6 @@
+models:
+  - provider: huggingface
+    model_id: Qwen/Qwen3-8B
+    revision: main
+    precision: nvfp4
+    weights_uri: huggingface://Qwen/Qwen3-8B

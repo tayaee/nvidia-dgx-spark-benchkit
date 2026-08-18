@@ -1,0 +1,7 @@
+click>=8.0
+
+[api]
+flask>=2.0
+
+[test]
+pytest>=7.0

@@ -1,0 +1,16 @@
+{
+  "server": {
+    "tp": 1,
+    "max_model_len": 8192,
+    "mem_fraction_static": 0.85
+  },
+  "client": {
+    "max_tokens": 2048,
+    "temperature": 0.0,
+    "top_p": 1.0
+  },
+  "evaluator": {
+    "timeout_seconds": 1800,
+    "fail_fast": false
+  }
+}

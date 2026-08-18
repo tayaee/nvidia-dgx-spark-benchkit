@@ -1,0 +1,3 @@
+{"instance_id": "astropy__astropy-12907", "problem_statement": "astropy.modeling should support compound models with non-orthogonal operators.", "base_commit": "abc1234"}
+{"instance_id": "astropy__astropy-13033", "problem_statement": "Fix segfault when calling wcs.p2s with negative naxis values.", "base_commit": "def5678"}
+{"instance_id": "astropy__astropy-13236", "problem_statement": "Incorrect units for Quantity * u.dimensionless_unscaled with array", "base_commit": "9abcdef"}

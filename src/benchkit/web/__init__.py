@@ -1,0 +1,1 @@
+"""Web UI package — static assets served by the API app."""

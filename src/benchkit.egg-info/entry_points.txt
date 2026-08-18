@@ -1,0 +1,2 @@
+[console_scripts]
+benchkit = benchkit.cli.main:main

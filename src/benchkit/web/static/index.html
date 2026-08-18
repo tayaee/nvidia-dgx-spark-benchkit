@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Benchkit Control UI</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #f6f7f9; color: #111; }
+  header { background: #0f172a; color: white; padding: 16px 24px; }
+  h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  main { display: grid; grid-template-columns: 320px 1fr; gap: 16px; padding: 16px 24px; }
+  section { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+  section h2 { margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; }
+  label { display: block; font-size: 12px; color: #475569; margin: 8px 0 4px; }
+  input, select, button, textarea { font: inherit; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 4px; }
+  button { cursor: pointer; background: #0f172a; color: white; border: none; }
+  button.secondary { background: #e2e8f0; color: #0f172a; }
+  button.danger { background: #b91c1c; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+  th { color: #475569; font-weight: 600; }
+  .status { padding: 2px 6px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .status.planned { background: #e2e8f0; color: #334155; }
+  .status.queued { background: #dbeafe; color: #1d4ed8; }
+  .status.running { background: #fef3c7; color: #92400e; }
+  .status.paused { background: #fde68a; color: #78350f; }
+  .status.completed { background: #d1fae5; color: #065f46; }
+  .status.failed { background: #fee2e2; color: #991b1b; }
+  .status.aborted { background: #f3e8ff; color: #6b21a8; }
+  .row-actions { display: flex; gap: 6px; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
+  #status-bar { position: sticky; top: 0; padding: 8px 0; font-size: 12px; color: #475569; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Benchkit Control UI</h1>
+</header>
+<main>
+  <section id="builder">
+    <h2>Experiment Builder</h2>
+    <label>Benchmark ID <input id="benchmark_id" value="swebench@1.0.0"></label>
+    <label>Benchmark Version <input id="benchmark_version" value="1.0.0"></label>
+    <label>Dataset Fingerprint <input id="dataset_fingerprint" value="ds-abc"></label>
+    <label>Models (comma-separated) <input id="models" value="huggingface:Qwen/Qwen3-8B@rev1"></label>
+    <label>Configs (one JSON object per line)
+      <textarea id="configs" rows="3">{"max_tokens": 256}</textarea>
+    </label>
+    <label>Evaluator Version <input id="evaluator_version" value="1.0.0"></label>
+    <label>Evaluator Image Digest <input id="evaluator_image_digest" value="sha256:dev"></label>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button id="preview-btn" class="secondary">Preview Matrix</button>
+      <button id="create-btn">Create + Start</button>
+    </div>
+    <div id="preview" style="margin-top:12px; font-size:12px;"></div>
+  </section>
+
+  <section>
+    <div id="status-bar">No experiment loaded.</div>
+    <h2>Trials</h2>
+    <table id="trials-table">
+      <thead>
+        <tr>
+          <th>Trial</th><th>Status</th><th>Model</th><th>Config</th>
+          <th>Selected Attempt</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2 style="margin-top:24px">Event Timeline</h2>
+    <ul id="events" style="font-size:12px; max-height:200px; overflow:auto; padding-left:16px;"></ul>
+
+    <h2 style="margin-top:24px">Report</h2>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <label>Evaluator Version <input id="report-evaluator-version" value="1.0.0" style="width:120px"></label>
+      <label>Image Digest <input id="report-image-digest" value="sha256:dev" style="width:160px"></label>
+      <button id="evaluate-btn" class="secondary">Evaluate</button>
+    </div>
+    <pre id="report"></pre>
+  </section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+let currentExperiment = localStorage.getItem('currentExperiment') || null;
+let pollTimer = null;
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const r = await fetch(path, opts);
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`${method} ${path} -> ${r.status} ${text}`);
+  }
+  return r.json();
+}
+
+function statusPill(s) {
+  return `<span class="status ${s}">${s}</span>`;
+}
+
+function previewMatrix() {
+  const cfgLines = $('#configs').value.split('\n').filter(Boolean);
+  const cfgs = cfgLines.map((l) => JSON.parse(l));
+  const models = $('#models').value.split(',').map((s) => s.trim()).filter(Boolean).map((id) => {
+    const [provider, rest] = id.split(':');
+    const [model, rev] = rest.split('@');
+    return { model_id: id, model_revision: rev, precision: 'fp16' };
+  });
+  return {
+    benchmark_id: $('#benchmark_id').value,
+    benchmark_version: $('#benchmark_version').value,
+    dataset_fingerprint: $('#dataset_fingerprint').value,
+    endpoint: { kind: 'openai-compatible' },
+    models, configs: cfgs,
+    evaluator_version: $('#evaluator_version').value,
+    evaluator_image_digest: $('#evaluator_image_digest').value,
+  };
+}
+
+$('#preview-btn').addEventListener('click', async () => {
+  try {
+    const out = await api('POST', '/api/builder/matrix', previewMatrix());
+    $('#preview').innerText = `expected trials: ${out.expected_trial_count}\nmodels: ${out.matrix.models.join(', ')}\nconfigs: ${out.matrix.configs.join(', ')}`;
+  } catch (e) {
+    $('#preview').innerText = 'error: ' + e.message;
+  }
+});
+
+$('#create-btn').addEventListener('click', async () => {
+  try {
+    const m = previewMatrix();
+    // Convert models/configs into the trials shape.
+    const trials = [];
+    for (const model of m.models) {
+      for (const cfg of m.configs) {
+        trials.push({
+          model_id: model.model_id,
+          model_revision: model.model_revision,
+          precision: model.precision,
+          config_bundle: cfg,
+          evaluator_version: m.evaluator_version,
+          evaluator_image_digest: m.evaluator_image_digest,
+          instance_ids: ['inst-1', 'inst-2'],
+        });
+      }
+    }
+    const created = await api('POST', '/api/experiments', {
+      benchmark_id: m.benchmark_id,
+      benchmark_version: m.benchmark_version,
+      dataset_fingerprint: m.dataset_fingerprint,
+      endpoint: m.endpoint,
+      trials,
+    });
+    currentExperiment = created.experiment_id;
+    localStorage.setItem('currentExperiment', currentExperiment);
+    $('#status-bar').innerText = `experiment ${created.experiment_id} (${created.trial_count} trials)`;
+    await api('POST', `/api/experiments/${currentExperiment}/start`, {});
+    refresh();
+    pollTimer = setInterval(refresh, 1500);
+  } catch (e) {
+    $('#status-bar').innerText = 'error: ' + e.message;
+  }
+});
+
+async function refresh() {
+  if (!currentExperiment) return;
+  const eid = currentExperiment;
+  const status = await api('GET', `/api/experiments/${eid}`);
+  const tbody = $('#trials-table tbody');
+  tbody.innerHTML = '';
+  for (const t of status.trials) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${t.trial_id}</td>
+      <td>${statusPill(t.status)}</td>
+      <td>${t.model_id}</td>
+      <td>${JSON.stringify(t.config_bundle || {})}</td>
+      <td>${t.selected_attempt || ''}</td>
+      <td>
+        <div class="row-actions">
+          <button class="secondary" data-act="pause" data-tid="${t.trial_id}">pause</button>
+          <button class="secondary" data-act="resume" data-tid="${t.trial_id}">resume</button>
+          <button class="danger" data-act="cancel" data-tid="${t.trial_id}">cancel</button>
+          <button class="secondary" data-act="retry" data-tid="${t.trial_id}">retry</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+  const events = await api('GET', `/api/experiments/${eid}/events`);
+  const list = $('#events');
+  list.innerHTML = '';
+  for (const ev of events.events.slice(-30).reverse()) {
+    const li = document.createElement('li');
+    li.innerText = `${new Date(ev.ts * 1000).toISOString()} ${ev.kind}`;
+    list.appendChild(li);
+  }
+}
+
+$('#trials-table').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('button[data-act]');
+  if (!btn || !currentExperiment) return;
+  const tid = btn.dataset.tid;
+  const act = btn.dataset.act;
+  try {
+    await api('POST', `/api/experiments/${currentExperiment}/trials/${tid}/${act}`, {});
+    refresh();
+  } catch (e) {
+    $('#status-bar').innerText = 'error: ' + e.message;
+  }
+});
+
+$('#evaluate-btn').addEventListener('click', async () => {
+  if (!currentExperiment) return;
+  const tid = $('#trials-table tbody tr:first-child td:first-child').innerText;
+  const eval_version = $('#report-evaluator-version').value;
+  const image_digest = $('#report-image-digest').value;
+  try {
+    // for each trial, evaluate + fetch report
+    const trials = await api('GET', `/api/experiments/${currentExperiment}`);
+    const summaries = [];
+    for (const t of trials.trials) {
+      await api('POST',
+        `/api/experiments/${currentExperiment}/trials/${t.trial_id}/evaluate`,
+        { evaluator_version: eval_version, image_digest });
+      const r = await api('GET', `/api/experiments/${currentExperiment}/trials/${t.trial_id}/report`);
+      summaries.push({ trial_id: t.trial_id, summary: r.summary });
+    }
+    $('#report').innerText = JSON.stringify(summaries, null, 2);
+  } catch (e) {
+    $('#report').innerText = 'error: ' + e.message;
+  }
+});
+
+// Expose for the automated browser tests
+window.__benchkit = { refresh, getExperiment: () => currentExperiment };
+
+// Auto-restore: on page load, if we have a saved experiment, refresh.
+if (currentExperiment) {
+  $('#status-bar').innerText = `restoring experiment ${currentExperiment}...`;
+  refresh();
+  pollTimer = setInterval(refresh, 1500);
+}
+</script>
+</body>
+</html>
