@@ -1,0 +1,29 @@
+```bash
+qemu-system-x86_64 -m 512 -cdrom /app/alpine.iso -nographic -daemonize -serial stdio -net user,hostfwd=tcp::2222-:22 &
+sleep 10
+expect -c '
+spawn qemu-system-x86_64 -m 512 -cdrom /app/alpine.iso -nographic -net user,hostfwd=tcp::2222-:22
+expect "login:"
+send "root\r"
+expect "Password:"
+send "\r"
+expect "localhost:~#"
+send "echo \"root:password123\" | chpasswd\r"
+expect "localhost:~#"
+send "apk add openssh\r"
+expect "localhost:~#"
+send "mkdir -p /etc/ssh\r"
+expect "localhost:~#"
+send "ssh-keygen -A\r"
+expect "localhost:~#"
+send "echo \"Port 22\" > /etc/ssh/sshd_config\r"
+expect "localhost:~#"
+send "echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config\r"
+expect "localhost:~#"
+send "echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config\r"
+expect "localhost:~#"
+send "/usr/sbin/sshd\r"
+expect "localhost:~#"
+send "exit\r"
+'
+```

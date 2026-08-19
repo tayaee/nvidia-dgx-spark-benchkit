@@ -1,0 +1,39 @@
+{
+  "instance_id": "tb20__gcode-to-text",
+  "benchmark": "terminal-bench-2.0",
+  "source": "live:harborframework/terminal-bench-2.0",
+  "ts": "20260819T050453Z",
+  "model_latency_s": 0.49,
+  "tokens": {
+    "prompt": 175,
+    "completion": 12,
+    "reasoning": null
+  },
+  "parsed": {
+    "format": "code-fence",
+    "command_count": 1,
+    "first_command": "cat /app/text.gcode",
+    "tool_call_attempted": false,
+    "tool_calls": 0,
+    "text_len": 31
+  },
+  "wiring_ok": true,
+  "response_full_len": 31,
+  "parsed_text_for_log": "```bash\ncat /app/text.gcode\n```",
+  "exec": {
+    "ran": true,
+    "image": "alexgshaw/gcode-to-text:20251031",
+    "container": "cf5e5550cbc31d61843a427e738c0ea2eab4102649ebe20c109571044ce45649",
+    "apply_exit": 0,
+    "verifier_exit": 1,
+    "commands_applied": 1,
+    "reward": "0",
+    "fail_to_pass_passed": 0,
+    "fail_to_pass_total": 1,
+    "pass_to_pass_regressed": 0,
+    "duration_s": 0.0,
+    "log_tail": "____________________________ test_hello_file_exists ____________________________\n\n    def test_hello_file_exists():\n        \"\"\"Test that out.txt file exists in the current directory.\"\"\"\n        hello_path = Path(\"/app/out.txt\")\n    \n>       assert hello_path.exists(), f\"File {hello_path} does not exist\"\nE       AssertionError: File /app/out.txt does not exist\nE       assert False\nE        +  where False = exists()\nE        +    where exists = PosixPath('/app/out.txt').exists\n\n/tests/test_outputs.py:10: AssertionError\n___________________________ test_hello_file_content ____________________________\n\n    def test_hello_file_content():\n        \"\"\"Test that out.txt contains exactly the flag.\"\"\"\n        hello_path = Path(\"/app/out.txt\")\n    \n>       assert hello_path.read_text().strip() == \"flag{gc0d3_iz_ch4LLenGiNg}\", (\n               ^^^^^^^^^^^^^^^^^^^^^^\n            f\"Expected the correct flag but got '{hello_path.read_text().strip()}'\"\n        )\n\n/tests/test_outputs.py:17: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/usr/local/lib/python3.13/pathlib/_local.py:546: in read_text\n    return PathBase.read_text(self, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/usr/local/lib/python3.13/pathlib/_abc.py:632: in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = PosixPath('/app/out.txt'), mode = 'r', buffering = -1, encoding = 'utf-8'\nerrors = None, newline = None\n\n    def open(self, mode='r', buffering=-1, encoding=None,\n             errors=None, newline=None):\n        \"\"\"\n        Open the file pointed to by this path and return a file object, as\n        the built-in open() function does.\n        \"\"\"\n        if \"b\" not in mode:\n            encoding = io.text_encoding(encoding)\n>       return io.open(self, mode, buffering, encoding, errors, newline)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE       FileNotFoundError: [Errno 2] No such file or directory: '/app/out.txt'\n\n/usr/local/lib/python3.13/pathlib/_local.py:537: FileNotFoundError\n=========================== short test summary info ============================\nFAILED ../tests/test_outputs.py::test_hello_file_exists - AssertionError: Fil...\nFAILED ../tests/test_outputs.py::test_hello_file_content - FileNotFoundError:...\n============================== 2 failed in 0.25s ===============================\n[verifier stderr]\ndebconf: delaying package configuration, since apt-utils is not installed\ndownloading uv 0.9.5 x86_64-unknown-linux-gnu\nDownloading pygments (1.2MiB)\n Downloading pygments\nInstalled 6 packages in 53ms",
+    "stderr_tail": "debconf: delaying package configuration, since apt-utils is not installed\ndownloading uv 0.9.5 x86_64-unknown-linux-gnu\nDownloading pygments (1.2MiB)\n Downloading pygments\nInstalled 6 packages in 53ms\n"
+  },
+  "verdict": "FAIL(0/1)"
+}

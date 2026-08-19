@@ -1,0 +1,37 @@
+2026-08-18 18:52:55,274 - minisweagent - INFO - Loading dataset SWE-bench/SWE-bench_Verified, split test...
+2026-08-18 18:52:56,327 - minisweagent - INFO - Instance slice: 500 -> 2 instances
+2026-08-18 18:52:56,333 - minisweagent - INFO - Running on 2 instances...
+2026-08-18 18:52:56,335 - minisweagent - INFO - Building agent config from specs: ['/home/user1/.local/share/mise/installs/python/3.14.6/lib/python3.14/site-packages/minisweagent/config/benchmarks/swebench.yaml']
+2026-08-18 18:53:00,968 - minisweagent.environment - DEBUG - Starting container with command: docker run -d --name minisweagent-437c0347 -w /testbed --rm docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-13033:latest sleep 2h
+2026-08-18 18:53:00,971 - minisweagent.environment - DEBUG - Starting container with command: docker run -d --name minisweagent-8d02db98 -w /testbed --rm docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-12907:latest sleep 2h
+2026-08-18 18:55:05,373 - minisweagent.environment - INFO - Started container minisweagent-437c0347 with ID c0e8fb24e71a7d8675909624ea20bbb17a60a7579a811382a82457a60f0614ad
+2026-08-18 18:56:03,960 - minisweagent.environment - INFO - Started container minisweagent-8d02db98 with ID 232bb32cdc6296d9ddc1f478dc9273ebed9b0d7fbb4476b51c26dc57743e8616
+2026-08-18 19:01:44,336 - minisweagent - INFO - Saved trajectory to 'astropy__astropy-12907/astropy__astropy-12907.traj.json'
+2026-08-18 19:04:06,530 - minisweagent - INFO - Saved trajectory to 'astropy__astropy-13033/astropy__astropy-13033.traj.json'
+2026-08-18 19:09:43,402 - minisweagent - INFO - Loading dataset SWE-bench/SWE-bench_Verified, split test...
+2026-08-18 19:09:44,614 - minisweagent - INFO - Instance slice: 500 -> 2 instances
+2026-08-18 19:09:44,620 - minisweagent - INFO - Skipping 2 existing instances
+2026-08-18 19:09:44,621 - minisweagent - INFO - Running on 0 instances...
+2026-08-18 19:09:44,622 - minisweagent - INFO - Building agent config from specs: ['/home/user1/.local/share/mise/installs/python/3.14.6/lib/python3.14/site-packages/minisweagent/config/benchmarks/swebench.yaml']
+2026-08-18 19:10:28,620 - minisweagent - INFO - Loading dataset SWE-bench/SWE-bench_Verified, split test...
+2026-08-18 19:10:29,383 - minisweagent - INFO - Instance slice: 500 -> 4 instances
+2026-08-18 19:10:29,396 - minisweagent - INFO - Skipping 2 existing instances
+2026-08-18 19:10:29,399 - minisweagent - INFO - Running on 2 instances...
+2026-08-18 19:10:29,400 - minisweagent - INFO - Building agent config from specs: ['/home/user1/.local/share/mise/installs/python/3.14.6/lib/python3.14/site-packages/minisweagent/config/benchmarks/swebench.yaml']
+2026-08-18 19:10:34,028 - minisweagent.environment - DEBUG - Starting container with command: docker run -d --name minisweagent-ae947163 -w /testbed --rm docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-13236:latest sleep 2h
+2026-08-18 19:10:34,031 - minisweagent.environment - DEBUG - Starting container with command: docker run -d --name minisweagent-2c8fc87b -w /testbed --rm docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-13398:latest sleep 2h
+2026-08-18 19:10:35,037 - minisweagent.environment - INFO - Started container minisweagent-2c8fc87b with ID bd6001e9b29efc3ab5bed9aa1ab27d3dca095a310f69d981144920acaf2fba19
+2026-08-18 19:10:47,195 - minisweagent.environment - INFO - Started container minisweagent-ae947163 with ID 5a82df5d0ca4cbcd924d5894dce183236ed5304b44069b8a21f9040fe9113bd6
+2026-08-18 19:53:24,326 - minisweagent - INFO - Saved trajectory to 'astropy__astropy-13236/astropy__astropy-13236.traj.json'
+2026-08-18 20:04:06,509 - minisweagent - INFO - Saved trajectory to 'astropy__astropy-13398/astropy__astropy-13398.traj.json'
+2026-08-18 20:51:18,953 - minisweagent - INFO - Loading dataset /swebench-pro.parquet, split train...
+2026-08-19 14:11:30,775 - minisweagent - INFO - Loading dataset SWE-bench/SWE-bench_Verified, split test...
+2026-08-19 14:11:31,675 - minisweagent - INFO - Instance slice: 500 -> 6 instances
+2026-08-19 14:11:31,681 - minisweagent - INFO - Skipping 4 existing instances
+2026-08-19 14:11:31,683 - minisweagent - INFO - Running on 2 instances...
+2026-08-19 14:11:31,684 - minisweagent - INFO - Building agent config from specs: ['/home/user1/.local/share/mise/installs/python/3.14.6/lib/python3.14/site-packages/minisweagent/config/benchmarks/swebench.yaml']
+2026-08-19 14:11:36,415 - minisweagent.environment - DEBUG - Starting container with command: docker run -d --name minisweagent-237fe212 -w /testbed --rm docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-13579:latest sleep 2h
+2026-08-19 14:11:36,417 - minisweagent.environment - DEBUG - Starting container with command: docker run -d --name minisweagent-0011924a -w /testbed --rm docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-13453:latest sleep 2h
+2026-08-19 14:11:59,673 - minisweagent.environment - INFO - Started container minisweagent-237fe212 with ID ba6a666220814a0bbe448b7ea21a9da4f06a3d31932e6e40226dc45c112eee27
+2026-08-19 14:13:27,706 - minisweagent.environment - INFO - Started container minisweagent-0011924a with ID 3a5b4028ff864ae7d4165d98f2b1c6dd6397623a14b3fb157ca606612b8a3969
+2026-08-19 14:28:17,496 - minisweagent - INFO - Saved trajectory to 'astropy__astropy-13453/astropy__astropy-13453.traj.json'

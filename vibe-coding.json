@@ -1,0 +1,31 @@
+{
+  "agents": {
+    "claude": {
+      "label": "claude with Minimax",
+      "cmd": "minimax-cli.sh",
+      "args": ["-p", "PROMPT"]
+    },
+    "agy": {
+      "label": "agy with Gemini",
+      "cmd": "gemini-cli.sh",
+      "args": ["-p", "PROMPT"]
+    },
+    "cmdc": {
+      "label": "cmdc with Deepseek",
+      "cmd": "cmdc-cli.sh",
+      "args": ["-p", "PROMPT"]
+    },
+    "pi": {
+      "label": "pi with Qwen",
+      "cmd": "qwen-cli.sh",
+      "args": ["-p", "PROMPT"]
+    }
+  },
+  "deploy": {
+    "dev": "deploy-to-dev.sh",
+    "prod": "deploy-to-prod.sh"
+  },
+  "git": {
+    "remote_url": "https://github.com/tayaee/nvidia-dgx-spark-benchkit"
+  }
+}

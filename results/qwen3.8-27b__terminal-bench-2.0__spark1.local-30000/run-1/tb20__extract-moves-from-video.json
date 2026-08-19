@@ -1,0 +1,39 @@
+{
+  "instance_id": "tb20__extract-moves-from-video",
+  "benchmark": "terminal-bench-2.0",
+  "source": "live:harborframework/terminal-bench-2.0",
+  "ts": "20260819T051116Z",
+  "model_latency_s": 6.98,
+  "tokens": {
+    "prompt": 189,
+    "completion": 124,
+    "reasoning": null
+  },
+  "parsed": {
+    "format": "code-fence",
+    "command_count": 6,
+    "first_command": "mkdir -p /app && cd /app",
+    "tool_call_attempted": false,
+    "tool_calls": 0,
+    "text_len": 335
+  },
+  "wiring_ok": true,
+  "response_full_len": 335,
+  "parsed_text_for_log": "```bash\nmkdir -p /app && cd /app\npip install -q yt-dlp\nyt-dlp -f \"bestaudio[ext=m4a]/bestaudio\" -o \"zork.%(ext)s\" \"https://www.youtube.com/watch?v=ZCbvyPbhRfA\"\npip install -q openai-whisper\nwhisper zork.m4a --model small --language en --output_format txt --output_dir /app\ncat /app/zork.en.txt | grep -v '^\\s*$' > /app/solution.txt\n```",
+  "exec": {
+    "ran": true,
+    "image": "alexgshaw/extract-moves-from-video:20251031",
+    "container": "1fc23e358eb356815cc84a12314412445a5f36edf2267587fa8718b7f33373f1",
+    "apply_exit": 1,
+    "verifier_exit": 1,
+    "commands_applied": 6,
+    "reward": "0",
+    "fail_to_pass_passed": 0,
+    "fail_to_pass_total": 1,
+    "pass_to_pass_regressed": 0,
+    "duration_s": 0.0,
+    "log_tail": "  uv\n  uvx\neverything's installed!\n\nTo add $HOME/.local/bin to your PATH, either restart your shell or run:\n\n    source $HOME/.local/bin/env (sh, bash, zsh)\n    source $HOME/.local/bin/env.fish (fish)\n============================= test session starts ==============================\nplatform linux -- Python 3.13.9, pytest-8.4.1, pluggy-1.6.0\nrootdir: /tests\nplugins: json-ctrf-0.3.5\ncollected 2 items\n\n../tests/test_outputs.py .F                                              [100%]\n\n=================================== FAILURES ===================================\n_______________________ test_solution_content_similarity _______________________\n\n    def test_solution_content_similarity():\n        \"\"\"\n        Test that the solution file content is similar to the expected solution\n        \"\"\"\n        # Reference the directory the agent operated in (the WORKDIR in the Docker env)\n        solution_path = Path(\"/app/solution.txt\")\n    \n        # Read the content of the solution file\n        with open(solution_path, \"r\") as file:\n            actual_solution = file.read()\n    \n        # Calculate Levenshtein distance between actual and expected solutions\n        distance = levenshtein_distance(actual_solution, SOLUTION)\n    \n        # Calculate similarity as a percentage (100% means identical)\n        max_length = max(len(actual_solution), len(SOLUTION))\n        if max_length == 0:  # Handle empty string case\n            similarity = 100.0\n        else:\n            similarity = 100.0 * (1 - distance / max_length)\n    \n>       assert similarity >= 90.0, (\n            f\"Solution similarity is {similarity:.2f}%, which is below the required 90%\"\n        )\nE       AssertionError: Solution similarity is 0.00%, which is below the required 90%\nE       assert 0.0 >= 90.0\n\n/tests/test_outputs.py:358: AssertionError\n==================================== PASSES ====================================\n=========================== short test summary info ============================\nPASSED ../tests/test_outputs.py::test_solution_file_exists\nFAILED ../tests/test_outputs.py::test_solution_content_similarity - Assertion...\n========================= 1 failed, 1 passed in 0.27s ==========================\n[verifier stderr]\ndebconf: delaying package configuration, since apt-utils is not installed\ndownloading uv 0.9.5 x86_64-unknown-linux-gnu\nDownloading cpython-3.13.9-linux-x86_64-gnu (download) (32.0MiB)\n Downloading cpython-3.13.9-linux-x86_64-gnu (download)\nDownloading pygments (1.2MiB)\n Downloading pygments\nInstalled 6 packages in 71ms",
+    "stderr_tail": "debconf: delaying package configuration, since apt-utils is not installed\ndownloading uv 0.9.5 x86_64-unknown-linux-gnu\nDownloading cpython-3.13.9-linux-x86_64-gnu (download) (32.0MiB)\n Downloading cpython-3.13.9-linux-x86_64-gnu (download)\nDownloading pygments (1.2MiB)\n Downloading pygments\nInstalled 6 packages in 71ms\n"
+  },
+  "verdict": "FAIL(apply-failed)"
+}

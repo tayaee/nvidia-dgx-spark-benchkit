@@ -1,0 +1,39 @@
+{
+  "instance_id": "tb20__sqlite-with-gcov",
+  "benchmark": "terminal-bench-2.0",
+  "source": "live:harborframework/terminal-bench-2.0",
+  "ts": "20260819T050625Z",
+  "model_latency_s": 11.41,
+  "tokens": {
+    "prompt": 170,
+    "completion": 484,
+    "reasoning": null
+  },
+  "parsed": {
+    "format": "raw",
+    "command_count": 2,
+    "first_command": "```sh",
+    "tool_call_attempted": false,
+    "tool_calls": 0,
+    "text_len": 1339
+  },
+  "wiring_ok": true,
+  "response_full_len": 1339,
+  "parsed_text_for_log": "```sh\ncd /app/vendor && tar -xzf sqlite-fossil-release.tar.gz && cd sqlite && ./configure --enable-fts3 --enable-fts4 --enable-rtree --enable-session --enable-fts5 --enable-fts4-tokenizer --enable-fts3-parenthesis --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode61 --enable-fts3-unicode",
+  "exec": {
+    "ran": true,
+    "image": "alexgshaw/sqlite-with-gcov:20251031",
+    "container": "a7c66eee2f05bc8923da19017500862c39751a51d2838f67a0b6a81161c53ec4",
+    "apply_exit": 1,
+    "verifier_exit": 1,
+    "commands_applied": 2,
+    "reward": "0",
+    "fail_to_pass_passed": 0,
+    "fail_to_pass_total": 1,
+    "pass_to_pass_regressed": 0,
+    "duration_s": 0.0,
+    "log_tail": "        finally:\n            # be sure the FD is closed no matter what\n            os.close(errpipe_read)\n    \n        if errpipe_data:\n            try:\n                pid, sts = os.waitpid(self.pid, 0)\n                if pid == self.pid:\n                    self._handle_exitstatus(sts)\n                else:\n                    self.returncode = sys.maxsize\n            except ChildProcessError:\n                pass\n    \n            try:\n                exception_name, hex_errno, err_msg = (\n                        errpipe_data.split(b':', 2))\n                # The encoding here should match the encoding\n                # written in by the subprocess implementations\n                # like _posixsubprocess\n                err_msg = err_msg.decode()\n            except ValueError:\n                exception_name = b'SubprocessError'\n                hex_errno = b'0'\n                err_msg = 'Bad exception data from child: {!r}'.format(\n                              bytes(errpipe_data))\n            child_exception_type = getattr(\n                    builtins, exception_name.decode('ascii'),\n                    SubprocessError)\n            if issubclass(child_exception_type, OSError) and hex_errno:\n                errno_num = int(hex_errno, 16)\n                if err_msg == \"noexec:chdir\":\n                    err_msg = \"\"\n                    # The error must be from chdir(cwd).\n                    err_filename = cwd\n                elif err_msg == \"noexec\":\n                    err_msg = \"\"\n                    err_filename = None\n                else:\n                    err_filename = orig_executable\n                if errno_num != 0:\n                    err_msg = os.strerror(errno_num)\n                if err_filename is not None:\n>                   raise child_exception_type(errno_num, err_msg, err_filename)\nE                   FileNotFoundError: [Errno 2] No such file or directory: 'sqlite3'\n\n/root/.local/share/uv/python/cpython-3.13.9-linux-x86_64-gnu/lib/python3.13/subprocess.py:1972: FileNotFoundError\n=========================== short test summary info ============================\nFAILED ../tests/test_outputs.py::test_sqlite_compiled - FileNotFoundError: [E...\nFAILED ../tests/test_outputs.py::test_sqlite_in_path - AssertionError: sqlite...\nFAILED ../tests/test_outputs.py::test_gcov_enabled - FileNotFoundError: [Errn...\n============================== 3 failed in 0.43s ===============================\n[verifier stderr]\ndebconf: delaying package configuration, since apt-utils is not installed\ndownloading uv 0.9.5 x86_64-unknown-linux-gnu\nDownloading cpython-3.13.9-linux-x86_64-gnu (download) (32.0MiB)\n Downloading cpython-3.13.9-linux-x86_64-gnu (download)\nDownloading pygments (1.2MiB)\n Downloading pygments\nInstalled 6 packages in 68ms",
+    "stderr_tail": "debconf: delaying package configuration, since apt-utils is not installed\ndownloading uv 0.9.5 x86_64-unknown-linux-gnu\nDownloading cpython-3.13.9-linux-x86_64-gnu (download) (32.0MiB)\n Downloading cpython-3.13.9-linux-x86_64-gnu (download)\nDownloading pygments (1.2MiB)\n Downloading pygments\nInstalled 6 packages in 68ms\n"
+  },
+  "verdict": "FAIL(apply-failed)"
+}

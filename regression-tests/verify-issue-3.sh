@@ -6,7 +6,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PY="${REPO_ROOT}/.venv_wsl/bin/python"
+PY="${REPO_ROOT}/.venv/bin/python"
 [[ -x "$PY" ]] || PY="$(command -v python)"
 
 WORK="${TMPDIR:-/tmp}/benchkit-issue-3-$$"

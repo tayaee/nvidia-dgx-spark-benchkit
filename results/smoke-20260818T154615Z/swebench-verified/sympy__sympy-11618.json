@@ -1,0 +1,42 @@
+{
+  "instance_id": "sympy__sympy-11618",
+  "benchmark": "swebench-verified",
+  "source": "live:SWE-bench/SWE-bench_Verified",
+  "ts": "20260818T154650Z",
+  "model_latency_s": 22.93,
+  "tokens": {
+    "prompt": 245,
+    "completion": 1104,
+    "reasoning": null
+  },
+  "parsed": {
+    "format": "patch-tag-unclosed",
+    "patch_lines": 102,
+    "looks_like_diff": true,
+    "first_5": [
+      "--- a/sympy/geometry/point.py",
+      "+++ b/sympy/geometry/point.py",
+      "@@ -1,5 +1,6 @@",
+      " from sympy.core import S, sympify",
+      " from sympy.core.compatibility import range"
+    ],
+    "tool_calls": 0,
+    "text_len": 4721
+  },
+  "wiring_ok": true,
+  "response_full_len": 4721,
+  "parsed_text_for_log": "<patch>\n--- a/sympy/geometry/point.py\n+++ b/sympy/geometry/point.py\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n+from sympy.core.numbers import Integer\n from sympy.functions.elementary.trigonometric import cos, sin, tan\n from sympy.geometry.util import point_line_intersection, point_segment_intersection\n from sympy.utilities.misc import filldedent\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n from sympy.core.numbers import Integer\n from sympy.functions.elementary.trigonometric import cos, sin, tan\n from sympy.geometry.util import point_line_intersection, point_segment_intersection\n from sympy.utilities.misc import filldedent\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n from sympy.core.numbers import Integer\n from sympy.functions.elementary.trigonometric import cos, sin, tan\n from sympy.geometry.util import point_line_intersection, point_segment_intersection\n from sympy.utilities.misc import filldedent\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n from sympy.core.numbers import Integer\n from sympy.functions.elementary.trigonometric import cos, sin, tan\n from sympy.geometry.util import point_line_intersection, point_segment_intersection\n from sympy.utilities.misc import filldedent\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n from sympy.core.numbers import Integer\n from sympy.functions.elementary.trigonometric import cos, sin, tan\n from sympy.geometry.util import point_line_intersection, point_segment_intersection\n from sympy.utilities.misc import filldedent\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n from sympy.core.numbers import Integer\n from sympy.functions.elementary.trigonometric import cos, sin, tan\n from sympy.geometry.util import point_line_intersection, point_segment_intersection\n from sympy.utilities.misc import filldedent\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n from sympy.core.numbers import Integer\n from sympy.functions.elementary.trigonometric import cos, sin, tan\n from sympy.geometry.util import point_line_intersection, point_segment_intersection\n from sympy.utilities.misc import filldedent\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n from sympy.core.numbers import Integer\n from sympy.functions.elementary.trigonometric import cos, sin, tan\n from sympy.geometry.util import point_line_intersection, point_segment_intersection\n from sympy.utilities.misc import filldedent\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n from sympy.core.numbers import Integer\n from sympy.functions.elementary.trigonometric import cos, sin, tan\n from sympy.geometry.util import point_line_intersection, point_segment_intersection\n from sympy.utilities.misc import filldedent\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n from sympy.core.numbers import Integer\n from sympy.functions.elementary.trigonometric import cos, sin, tan\n from sympy.geometry.util import point_line_intersection, point_segment_intersection\n from sympy.utilities.misc import filldedent\n@@ -1,5 +1,6 @@\n from sympy.core import S, sympify\n from sympy.core.compatibility import range\n from sympy.core.decorators import deprecated\n ",
+  "exec": {
+    "ran": true,
+    "image": "swebench/sweb.eval.x86_64.sympy_1776_sympy-11618:latest",
+    "apply_exit": 1,
+    "verifier_exit": 1,
+    "fail_to_pass_passed": 0,
+    "fail_to_pass_total": 1,
+    "pass_to_pass_regressed": 0,
+    "duration_s": 0.0,
+    "log_tail": "[smoke] applying model_patch\nAPPLY_FAILED\n",
+    "stderr_tail": "+ '[' -s /workspace/model.patch ']'\n+ echo '[smoke] applying model_patch'\n+ git apply -v /workspace/model.patch\nerror: patch fragment without header at line 11: @@ -1,5 +1,6 @@\n+ echo APPLY_FAILED\n+ exit 1\n"
+  },
+  "verdict": "FAIL(apply-failed)"
+}

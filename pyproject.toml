@@ -24,3 +24,12 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+markers = [
+    "docker: integration tests that require a docker daemon and a cached test image (skip if absent)",
+]
+
+[tool.pyright]
+include = ["bin", "src", "tests"]
+extraPaths = ["bin", "src"]
+exclude = ["**/__pycache__", ".venv", "build", "dist"]
+reportMissingImports = "none"

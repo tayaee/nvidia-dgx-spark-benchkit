@@ -1,0 +1,42 @@
+{
+  "instance_id": "django__django-16485",
+  "benchmark": "swebench-verified",
+  "source": "live:SWE-bench/SWE-bench_Verified",
+  "ts": "20260818T154626Z",
+  "model_latency_s": 6.72,
+  "tokens": {
+    "prompt": 235,
+    "completion": 142,
+    "reasoning": null
+  },
+  "parsed": {
+    "format": "patch-tag",
+    "patch_lines": 17,
+    "looks_like_diff": true,
+    "first_5": [
+      "--- a/django/template/defaultfilters.py",
+      "+++ b/django/template/defaultfilters.py",
+      "@@ -1,6 +1,7 @@",
+      " import re",
+      " from decimal import Decimal, InvalidOperation"
+    ],
+    "tool_calls": 0,
+    "text_len": 536
+  },
+  "wiring_ok": true,
+  "response_full_len": 536,
+  "parsed_text_for_log": "<patch>\n--- a/django/template/defaultfilters.py\n+++ b/django/template/defaultfilters.py\n@@ -1,6 +1,7 @@\n import re\n from decimal import Decimal, InvalidOperation\n \n from django.utils import formats\n from django.utils.safestring import mark_safe\n@@ -100,7 +101,7 @@\n     if value is None:\n         return value\n     try:\n-        value = float(value)\n+        value = float(value) if not isinstance(value, Decimal) else value\n     except (ValueError, TypeError, InvalidOperation):\n         try:\n             value = float(value)\n</patch>",
+  "exec": {
+    "ran": true,
+    "image": "swebench/sweb.eval.x86_64.django_1776_django-16485:latest",
+    "apply_exit": 1,
+    "verifier_exit": 1,
+    "fail_to_pass_passed": 0,
+    "fail_to_pass_total": 1,
+    "pass_to_pass_regressed": 0,
+    "duration_s": 0.0,
+    "log_tail": "[smoke] applying model_patch\nAPPLY_FAILED\n",
+    "stderr_tail": "+ '[' -s /workspace/model.patch ']'\n+ echo '[smoke] applying model_patch'\n+ git apply -v /workspace/model.patch\nerror: corrupt patch at line 9\n+ echo APPLY_FAILED\n+ exit 1\n"
+  },
+  "verdict": "FAIL(apply-failed)"
+}

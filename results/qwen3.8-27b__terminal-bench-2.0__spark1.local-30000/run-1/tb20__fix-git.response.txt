@@ -1,0 +1,8 @@
+```
+git stash list
+git log --all --oneline
+git branch -a
+git stash apply
+git checkout master
+git merge $(git stash list | head -1 | cut -d' ' -f2)
+```

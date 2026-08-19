@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(./bin/swebench-verified-smoke.sh:*)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

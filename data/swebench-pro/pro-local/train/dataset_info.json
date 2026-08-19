@@ -1,0 +1,80 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "repo": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "instance_id": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "base_commit": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "patch": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "test_patch": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "problem_statement": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "requirements": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "interface": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "repo_language": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "fail_to_pass": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "pass_to_pass": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "issue_specificity": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "issue_categories": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "before_repo_set_cmd": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "selected_test_files_to_run": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "dockerhub_tag": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "docker_image": {
+      "dtype": "large_string",
+      "_type": "Value"
+    },
+    "__index_level_0__": {
+      "dtype": "int64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": ""
+}

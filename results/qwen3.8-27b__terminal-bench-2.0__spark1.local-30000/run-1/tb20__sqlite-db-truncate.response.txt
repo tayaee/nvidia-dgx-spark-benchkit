@@ -1,0 +1,78 @@
+```bash
+python3 -c "
+import sqlite3, json, re, os
+
+db_path = '/app/trunc.db'
+out_path = '/app/recover.json'
+
+# Read raw bytes
+with open(db_path, 'rb') as f:
+    data = f.read()
+
+# Try to open the database and read rows
+rows = []
+try:
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute('SELECT word, value FROM words')
+    rows = cur.fetchall()
+    conn.close()
+except Exception:
+    pass
+
+# If no rows from sqlite, try to extract from raw bytes
+if not rows:
+    # Look for patterns like testwordXX with associated values
+    # Try to find text patterns in the binary data
+    text = data.decode('latin-1')
+    # Find all testword patterns
+    matches = re.findall(r'testword([A-Z0-9]+)', text)
+    # Try to find numeric values near them
+    # Look for patterns where word and value are stored
+    # In SQLite, text and integers are stored in record format
+    # Let's try a different approach: scan for the pattern in the raw data
+    
+    # Try to parse SQLite record format manually
+    # Or just try to find all testword entries and nearby integers
+    found = []
+    for m in re.finditer(r'testword([A-Z0-9]+)', data):
+        word = 'testword' + m.group(1)
+        # Look for a nearby integer value
+        # In SQLite, the value might be stored as a varint or integer
+        start = m.start()
+        end = m.end()
+        # Look at bytes after the word for an integer
+        # Try to find a small integer in the next few bytes
+        chunk = data[end:end+20]
+        # Try to interpret as various integer formats
+        val = None
+        # Check if there's a recognizable integer pattern
+        for i in range(len(chunk)):
+            if chunk[i] == 0x01:  # 1-byte integer
+                val = chunk[i+1] if i+1 < len(chunk) else None
+                break
+            elif chunk[i] == 0x02:  # 2-byte integer
+                if i+3 < len(chunk):
+                    val = int.from_bytes(chunk[i+1:i+3], 'big')
+                    break
+            elif chunk[i] == 0x03:  # 3-byte integer
+                if i+4 < len(chunk):
+                    val = int.from_bytes(chunk[i+1:i+4], 'big')
+                    break
+            elif chunk[i] == 0x04:  # 4-byte integer
+                if i+5 < len(chunk):
+                    val = int.from_bytes(chunk[i+1:i+5], 'big')
+                    break
+        if val is not None:
+            found.append({'word': word, 'value': val})
+    
+    if found:
+        rows = [(f['word'], f['value']) for f in found]
+
+# Convert to JSON format
+result = [{'word': r[0], 'value': r[1]} for r in rows]
+with open(out_path, 'w') as f:
+    json.dump(result, f, indent=2)
+print(f'Recovered {len(result)} rows')
+"
+```

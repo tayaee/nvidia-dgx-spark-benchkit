@@ -1,0 +1,7 @@
+2026-08-18 21:12:04,867 - minisweagent - INFO - Loading dataset /home/user1/git/nvidia-dgx-spark-benches/data/swebench-pro/pro-local, split train...
+2026-08-18 21:12:05,296 - minisweagent - INFO - Instance slice: 731 -> 1 instances
+2026-08-18 21:12:05,300 - minisweagent - INFO - Running on 1 instances...
+2026-08-18 21:12:05,301 - minisweagent - INFO - Building agent config from specs: ['/home/user1/.local/share/mise/installs/python/3.14.6/lib/python3.14/site-packages/minisweagent/config/benchmarks/swebench.yaml']
+2026-08-18 21:12:09,995 - minisweagent.environment - DEBUG - Starting container with command: /home/user1/git/nvidia-dgx-spark-benches/bin/docker-pro-entrypoint-fix.sh run -d --name minisweagent-1eef6708 -w /testbed --rm jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-f91ace96223cac8161c16dd061907e138fe85111-v059c6fdc75567943479b23ebca7c07b5e9a7f sleep 2h
+2026-08-18 21:12:10,583 - minisweagent.environment - INFO - Started container minisweagent-1eef6708 with ID 3255ba41d2c16e97085d4da8ca3a3f8a877bc9a40693682c216cd6822cfec678
+2026-08-18 21:20:37,424 - minisweagent - INFO - Saved trajectory to 'instance_qutebrowser__qutebrowser-f91ace96223cac8161c16dd061907e138fe85111-v059c6fdc75567943479b23ebca7c07b5e9a7f34c/instance_qutebrowser__qutebrowser-f91ace96223cac8161c16dd061907e138fe85111-v059c6fdc75567943479b23ebca7c07b5e9a7f34c.traj.json'

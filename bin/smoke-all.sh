@@ -5,7 +5,7 @@
 set -uo pipefail
 cd "$(cd "$(dirname "$0")/.." && pwd)"
 
-BENCHMARKS=(swebench-verified swebench-pro terminal-bench-2.1 deepswe-1.1 frontiercode-1.1)
+BENCHMARKS=(swebench-verified swebench-pro terminal-bench-2.0 deepswe-1.1)
 RESULTS=()
 for b in "${BENCHMARKS[@]}"; do
   echo "==================================================================="

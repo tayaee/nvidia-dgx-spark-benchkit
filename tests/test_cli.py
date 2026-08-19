@@ -10,12 +10,17 @@ import pytest
 
 
 def _venv_python() -> str:
-    """Path to the python interpreter inside the uv-managed .venv_wsl/."""
+    """Python interpreter with benchkit installed.
+
+    Prefers the project venv (.venv/, legacy .venv_wsl/); falls back to the
+    interpreter running pytest, which must have benchkit available anyway.
+    """
     repo_root = Path(__file__).resolve().parents[1]
-    venv = repo_root / ".venv_wsl"
-    # uv-managed venv: bin/python on linux
-    py = venv / "bin" / "python"
-    return str(py)
+    for name in (".venv", ".venv_wsl"):
+        py = repo_root / name / "bin" / "python"
+        if py.exists():
+            return str(py)
+    return sys.executable
 
 
 def _benchkit(*args, env):

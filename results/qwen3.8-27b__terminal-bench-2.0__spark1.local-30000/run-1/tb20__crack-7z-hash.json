@@ -1,0 +1,39 @@
+{
+  "instance_id": "tb20__crack-7z-hash",
+  "benchmark": "terminal-bench-2.0",
+  "source": "live:harborframework/terminal-bench-2.0",
+  "ts": "20260819T050127Z",
+  "model_latency_s": 1.43,
+  "tokens": {
+    "prompt": 153,
+    "completion": 28,
+    "reasoning": null
+  },
+  "parsed": {
+    "format": "code-fence",
+    "command_count": 1,
+    "first_command": "cd /app && 7z x secrets.7z -y && cat secret_file.txt > solution.txt",
+    "tool_call_attempted": false,
+    "tool_calls": 0,
+    "text_len": 79
+  },
+  "wiring_ok": true,
+  "response_full_len": 79,
+  "parsed_text_for_log": "```bash\ncd /app && 7z x secrets.7z -y && cat secret_file.txt > solution.txt\n```",
+  "exec": {
+    "ran": true,
+    "image": "alexgshaw/crack-7z-hash:20251031",
+    "container": "15a5e21ad355dc4ab2b51375a6bb4f2c071db497c8290b31110fae0c7cd58822",
+    "apply_exit": 127,
+    "verifier_exit": 1,
+    "commands_applied": 1,
+    "reward": "0",
+    "fail_to_pass_passed": 0,
+    "fail_to_pass_total": 1,
+    "pass_to_pass_regressed": 0,
+    "duration_s": 0.0,
+    "log_tail": "Processing triggers for libc-bin (2.39-0ubuntu8.6) ...\nno checksums to verify\ninstalling to /root/.local/bin\n  uv\n  uvx\neverything's installed!\n\nTo add $HOME/.local/bin to your PATH, either restart your shell or run:\n\n    source $HOME/.local/bin/env (sh, bash, zsh)\n    source $HOME/.local/bin/env.fish (fish)\n============================= test session starts ==============================\nplatform linux -- Python 3.13.9, pytest-8.4.1, pluggy-1.6.0\nrootdir: /tests\nplugins: json-ctrf-0.3.5\ncollected 2 items\n\n../tests/test_outputs.py FF                                              [100%]\n\n=================================== FAILURES ===================================\n______________________________ test_solution_file ______________________________\n\n    def test_solution_file():\n        \"\"\"Test that the solution file exists at the expected path.\"\"\"\n        solution_path = Path(\"/app/solution.txt\")\n    \n>       assert os.path.exists(solution_path), (\n            f\"Solution file {solution_path} does not exist.\"\n        )\nE       AssertionError: Solution file /app/solution.txt does not exist.\nE       assert False\nE        +  where False = <function exists at 0x7d5e8308b240>(PosixPath('/app/solution.txt'))\nE        +    where <function exists at 0x7d5e8308b240> = <module 'posixpath' (frozen)>.exists\nE        +      where <module 'posixpath' (frozen)> = os.path\n\n/tests/test_outputs.py:12: AssertionError\n____________________________ test_solution_content _____________________________\n\n    def test_solution_content():\n        \"\"\"Test that the solution file contains the correct password extracted from the 7z\n        archive.\"\"\"\n        solution_path = Path(\"/app/solution.txt\")\n    \n>       with open(solution_path, \"r\") as f:\n             ^^^^^^^^^^^^^^^^^^^^^^^^\nE       FileNotFoundError: [Errno 2] No such file or directory: '/app/solution.txt'\n\n/tests/test_outputs.py:22: FileNotFoundError\n=========================== short test summary info ============================\nFAILED ../tests/test_outputs.py::test_solution_file - AssertionError: Solutio...\nFAILED ../tests/test_outputs.py::test_solution_content - FileNotFoundError: [...\n============================== 2 failed in 0.15s ===============================\n[verifier stderr]\ndebconf: delaying package configuration, since apt-utils is not installed\ndownloading uv 0.9.5 x86_64-unknown-linux-gnu\nDownloading cpython-3.13.9-linux-x86_64-gnu (download) (32.0MiB)\n Downloading cpython-3.13.9-linux-x86_64-gnu (download)\nDownloading pygments (1.2MiB)\n Downloading pygments\nInstalled 6 packages in 81ms",
+    "stderr_tail": "debconf: delaying package configuration, since apt-utils is not installed\ndownloading uv 0.9.5 x86_64-unknown-linux-gnu\nDownloading cpython-3.13.9-linux-x86_64-gnu (download) (32.0MiB)\n Downloading cpython-3.13.9-linux-x86_64-gnu (download)\nDownloading pygments (1.2MiB)\n Downloading pygments\nInstalled 6 packages in 81ms\n"
+  },
+  "verdict": "FAIL(apply-failed)"
+}

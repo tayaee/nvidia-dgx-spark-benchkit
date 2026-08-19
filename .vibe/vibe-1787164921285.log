@@ -1,0 +1,13 @@
+[14:42:01] agent=pi cmd=/home/user1/.local/bin/qwen-cli.sh
+[14:42:30] agent exit=0
+[14:42:30] + /home/user1/.local/bin/qwen38-cli.sh -p "echo hello"
+Using ANTHROPIC_BASE_URL=http://spark1.local:30000
+Using ANTHROPIC_AUTH_TOKEN=$QWEN_API_KEY
++ claude --model qwen3.8-27b --dangerously-skip-permissions -p echo hello
+
+
+hello
+
+[14:42:30] [stderr] [claude-code:unrecognized_model] {"model":"qwen3.8-27b","query_source":"sdk"}
+
+[14:42:30] committing changes…

@@ -1,0 +1,39 @@
+{
+  "instance_id": "tb20__qemu-alpine-ssh",
+  "benchmark": "terminal-bench-2.0",
+  "source": "live:harborframework/terminal-bench-2.0",
+  "ts": "20260819T052634Z",
+  "model_latency_s": 13.68,
+  "tokens": {
+    "prompt": 200,
+    "completion": 322,
+    "reasoning": null
+  },
+  "parsed": {
+    "format": "code-fence",
+    "command_count": 27,
+    "first_command": "qemu-system-x86_64 -m 512 -cdrom /app/alpine.iso -nographic -daemonize -serial stdio -net user,hostfwd=tcp::2222-:22 &",
+    "tool_call_attempted": false,
+    "tool_calls": 0,
+    "text_len": 847
+  },
+  "wiring_ok": true,
+  "response_full_len": 847,
+  "parsed_text_for_log": "```bash\nqemu-system-x86_64 -m 512 -cdrom /app/alpine.iso -nographic -daemonize -serial stdio -net user,hostfwd=tcp::2222-:22 &\nsleep 10\nexpect -c '\nspawn qemu-system-x86_64 -m 512 -cdrom /app/alpine.iso -nographic -net user,hostfwd=tcp::2222-:22\nexpect \"login:\"\nsend \"root\\r\"\nexpect \"Password:\"\nsend \"\\r\"\nexpect \"localhost:~#\"\nsend \"echo \\\"root:password123\\\" | chpasswd\\r\"\nexpect \"localhost:~#\"\nsend \"apk add openssh\\r\"\nexpect \"localhost:~#\"\nsend \"mkdir -p /etc/ssh\\r\"\nexpect \"localhost:~#\"\nsend \"ssh-keygen -A\\r\"\nexpect \"localhost:~#\"\nsend \"echo \\\"Port 22\\\" > /etc/ssh/sshd_config\\r\"\nexpect \"localhost:~#\"\nsend \"echo \\\"PermitRootLogin yes\\\" >> /etc/ssh/sshd_config\\r\"\nexpect \"localhost:~#\"\nsend \"echo \\\"PasswordAuthentication yes\\\" >> /etc/ssh/sshd_config\\r\"\nexpect \"localhost:~#\"\nsend \"/usr/sbin/sshd\\r\"\nexpect \"localhost:~#\"\nsend \"exit\\r\"\n'\n```",
+  "exec": {
+    "ran": true,
+    "image": "alexgshaw/qemu-alpine-ssh:20251031",
+    "container": "a4103bd8ce301f2a2f477b3024f7080cfbc981e35bd6a9c6f1e51107bac6ff9d",
+    "apply_exit": 2,
+    "verifier_exit": 1,
+    "commands_applied": 27,
+    "reward": "0",
+    "fail_to_pass_passed": 0,
+    "fail_to_pass_total": 1,
+    "pass_to_pass_regressed": 0,
+    "duration_s": 0.0,
+    "log_tail": "    \n        By default, all communication is in bytes, and therefore any \"input\" should\n        be bytes, and the stdout and stderr will be bytes. If in text mode, any\n        \"input\" should be a string, and stdout and stderr will be strings decoded\n        according to locale encoding, or by \"encoding\" if set. Text mode is\n        triggered by setting any of text, encoding, errors or universal_newlines.\n    \n        The other arguments are the same as for the Popen constructor.\n        \"\"\"\n        if input is not None:\n            if kwargs.get('stdin') is not None:\n                raise ValueError('stdin and input arguments may not both be used.')\n            kwargs['stdin'] = PIPE\n    \n        if capture_output:\n            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:\n                raise ValueError('stdout and stderr arguments may not be used '\n                                 'with capture_output.')\n            kwargs['stdout'] = PIPE\n            kwargs['stderr'] = PIPE\n    \n        with Popen(*popenargs, **kwargs) as process:\n            try:\n                stdout, stderr = process.communicate(input, timeout=timeout)\n            except TimeoutExpired as exc:\n                process.kill()\n                if _mswindows:\n                    # Windows accumulates the output in a single blocking\n                    # read() call run on child threads, with the timeout\n                    # being done in a join() on those threads.  communicate()\n                    # _after_ kill() is required to collect that and add it\n                    # to the exception.\n                    exc.stdout, exc.stderr = process.communicate()\n                else:\n                    # POSIX _communicate already populated the output so\n                    # far into the TimeoutExpired exception.\n                    process.wait()\n                raise\n            except:  # Including KeyboardInterrupt, communicate handled that.\n                process.kill()\n                # We don't call process.wait() as .__exit__ does that for us.\n                raise\n            retcode = process.poll()\n            if check and retcode:\n>               raise CalledProcessError(retcode, process.args,\n                                         output=stdout, stderr=stderr)\nE               subprocess.CalledProcessError: Command '['sshpass', '-p', 'password123', 'ssh', '-o', 'StrictHostKeyChecking=no', '-p', '2222', 'root@localhost', 'uname -r']' returned non-zero exit status 255.\n\n/root/.local/share/uv/python/cpython-3.13.9-linux-x86_64-gnu/lib/python3.13/subprocess.py:577: CalledProcessError\n=========================== short test summary info ============================\nFAILED ../tests/test_outputs.py::test_sshpass - subprocess.CalledProcessError...\n============================== 1 failed in 0.19s ===============================\n[verifier stderr]\ndebconf: delaying package configuration, since apt-utils is not installed\ndownloading uv 0.9.5 x86_64-unknown-linux-gnu\nDownloading cpython-3.13.9-linux-x86_64-gnu (download) (32.0MiB)\n Downloading cpython-3.13.9-linux-x86_64-gnu (download)\nDownloading pygments (1.2MiB)\n Downloading pygments\nInstalled 6 packages in 45ms",
+    "stderr_tail": "debconf: delaying package configuration, since apt-utils is not installed\ndownloading uv 0.9.5 x86_64-unknown-linux-gnu\nDownloading cpython-3.13.9-linux-x86_64-gnu (download) (32.0MiB)\n Downloading cpython-3.13.9-linux-x86_64-gnu (download)\nDownloading pygments (1.2MiB)\n Downloading pygments\nInstalled 6 packages in 45ms\n"
+  },
+  "verdict": "FAIL(apply-failed)"
+}

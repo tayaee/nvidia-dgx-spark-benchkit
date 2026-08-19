@@ -1,0 +1,14 @@
+{
+  "run_id": "1",
+  "total_predicted": 1,
+  "resolved": 1,
+  "unresolved": 0,
+  "missing": 0,
+  "not_evaluated": 0,
+  "resolved_ids": [
+    "instance_qutebrowser__qutebrowser-f91ace96223cac8161c16dd061907e138fe85111-v059c6fdc75567943479b23ebca7c07b5e9a7f34c"
+  ],
+  "unresolved_ids": [],
+  "missing_ids": [],
+  "not_evaluated_ids": []
+}

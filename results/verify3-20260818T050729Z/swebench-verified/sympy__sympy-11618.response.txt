@@ -1,0 +1,108 @@
+<patch>
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,4 +1,5 @@
+ from sympy.core import S, sympify
+ from sympy.core.decorators import deprecated
+ from sympy.core.compatibility import zip, range
++from sympy.core.numbers import Integer
+ from sympy.core.power import Pow
+ from sympy.core.relational import Eq
+ from sympy.core.singleton import Singleton
+@@ -1,

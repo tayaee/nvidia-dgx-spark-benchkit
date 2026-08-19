@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Benchkit — Benchmark Dashboard</title>
+<style>
+  :root {
+    --md-bg: #ffffff;
+    --md-surface: #ffffff;
+    --md-surface-variant: #f8f9fa;
+    --md-outline: #e0e0e0;
+    --md-text: #1f1f1f;
+    --md-text-muted: #5f6368;
+    --md-primary: #1a73e8;
+    --md-primary-soft: #e8f0fe;
+    --md-green: #188038;
+    --md-green-soft: #e6f4ea;
+    --md-red: #d93025;
+    --md-red-soft: #fce8e6;
+    --md-amber: #b06000;
+    --md-amber-soft: #fef7e0;
+    --md-gray-soft: #f1f3f4;
+    --md-radius: 12px;
+    --md-shadow: 0 1px 2px rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+    --md-font: "Google Sans", Roboto, "Segoe UI", -apple-system, BlinkMacSystemFont, "Noto Sans KR", sans-serif;
+    --md-mono: "Google Sans Mono", "Roboto Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: var(--md-font);
+    background: var(--md-bg);
+    color: var(--md-text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* ── top bar ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--md-surface);
+    border-bottom: 1px solid var(--md-outline);
+    padding: 8px 16px;
+    display: flex; align-items: center; gap: 8px;
+    min-height: 56px;
+  }
+  .topbar .logo {
+    font-size: 20px; font-weight: 500; color: var(--md-text);
+    display: flex; align-items: center; gap: 8px;
+    text-decoration: none; cursor: pointer;
+  }
+  .topbar .logo .dot { width: 28px; height: 28px; border-radius: 50%; background: var(--md-primary); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:15px; }
+  .topbar .crumb { font-size: 14px; color: var(--md-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: right; }
+  .edit-app-link {
+    font-size: 12px; color: var(--md-primary); text-decoration: none;
+    border: 1px solid var(--md-primary); border-radius: 999px;
+    padding: 4px 14px; white-space: nowrap; cursor: pointer;
+  }
+  .edit-app-link:hover { background: var(--md-primary-soft); }
+  .btn-back {
+    background: transparent; border: none; cursor: pointer;
+    font-size: 22px; color: var(--md-text-muted); padding: 4px 8px;
+    border-radius: 50%; line-height: 1;
+  }
+  .btn-back:hover { background: var(--md-gray-soft); }
+  .btn-back.hidden { visibility: hidden; }
+  /* ── content ── */
+  .content { max-width: 720px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; font-weight: 500; margin: 8px 0 4px; }
+  .subtitle { color: var(--md-text-muted); font-size: 13px; margin-bottom: 16px; }
+  /* ── list card ── */
+  .card {
+    background: var(--md-surface);
+    border: 1px solid var(--md-outline);
+    border-radius: var(--md-radius);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: box-shadow .15s, background .15s;
+    display: block;
+    width: 100%;
+    text-align: left;
+  }
+  .card:active { background: var(--md-gray-soft); }
+  .card .row1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card .bench { font-size: 16px; font-weight: 500; }
+  .card .chip {
+    font-size: 11px; padding: 2px 10px; border-radius: 999px;
+    background: var(--md-gray-soft); color: var(--md-text-muted);
+    white-space: nowrap;
+  }
+  .card .chip.bench-chip { background: var(--md-primary-soft); color: var(--md-primary); }
+  .card .row2 { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .card .stat { font-size: 13px; color: var(--md-text-muted); }
+  .card .stat b { color: var(--md-text); font-weight: 500; }
+  .score { margin-left: auto; font-size: 15px; font-weight: 600; }
+  .score.green { color: var(--md-green); }
+  .score.red { color: var(--md-red); }
+  .score.gray { color: var(--md-text-muted); }
+  .score small { font-weight: 400; color: var(--md-text-muted); font-size: 12px; }
+  /* progress bar */
+  .bar { height: 4px; background: var(--md-gray-soft); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--md-primary); border-radius: 2px; }
+  .bar > i.full { background: var(--md-green); }
+  /* ── summary block ── */
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0; }
+  .sum-cell {
+    background: var(--md-surface-variant); border-radius: var(--md-radius);
+    padding: 10px 6px; text-align: center;
+  }
+  .sum-cell .n { font-size: 22px; font-weight: 500; }
+  .sum-cell .l { font-size: 11px; color: var(--md-text-muted); }
+  .sum-cell.res .n { color: var(--md-green); }
+  .sum-cell.unres .n { color: var(--md-red); }
+  /* ── instance row ── */
+  .inst { display: flex; align-items: center; gap: 10px; }
+  .inst .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot.resolved { background: var(--md-green); }
+  .dot.unresolved { background: var(--md-red); }
+  .dot.missing { background: var(--md-amber); }
+  .dot.unknown { background: var(--md-outline); }
+  .inst .id { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .inst .meta { font-size: 11px; color: var(--md-text-muted); white-space: nowrap; }
+  /* ── detail page ── */
+  .detail-title { font-family: var(--md-mono); font-size: 15px; word-break: break-all; margin-bottom: 4px; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 16px; }
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 999px; }
+  .badge.green { background: var(--md-green-soft); color: var(--md-green); }
+  .badge.red { background: var(--md-red-soft); color: var(--md-red); }
+  .badge.amber { background: var(--md-amber-soft); color: var(--md-amber); }
+  .badge.gray { background: var(--md-gray-soft); color: var(--md-text-muted); }
+  .section { margin: 18px 0 8px; font-size: 14px; font-weight: 500; color: var(--md-text-muted); }
+  .problem {
+    background: var(--md-surface-variant); border-radius: var(--md-radius);
+    padding: 12px 14px; font-size: 13px; white-space: pre-wrap; word-break: break-word;
+    max-height: 40vh; overflow: auto;
+  }
+  /* ── trajectory steps ── */
+  .step {
+    border: 1px solid var(--md-outline); border-radius: var(--md-radius);
+    margin-bottom: 8px; overflow: hidden;
+  }
+  .step summary {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; cursor: pointer; background: var(--md-surface);
+    list-style: none; font-size: 13px;
+  }
+  .step summary::-webkit-details-marker { display: none; }
+  .step summary .idx {
+    background: var(--md-primary-soft); color: var(--md-primary);
+    border-radius: 6px; font-size: 11px; font-weight: 600;
+    padding: 1px 7px; flex-shrink: 0;
+  }
+  .step summary .cmd {
+    font-family: var(--md-mono); font-size: 12px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+  }
+  .step .body { border-top: 1px solid var(--md-outline); background: var(--md-surface-variant); }
+  .step .reasoning { padding: 10px 12px; font-size: 12px; color: var(--md-text-muted); white-space: pre-wrap; border-bottom: 1px solid var(--md-outline); }
+  .step .cmd-full { padding: 10px 12px; font-family: var(--md-mono); font-size: 12px; white-space: pre-wrap; word-break: break-all; background: #fff; border-bottom: 1px solid var(--md-outline); }
+  .step .out { padding: 10px 12px; font-family: var(--md-mono); font-size: 11px; white-space: pre-wrap; word-break: break-all; max-height: 30vh; overflow: auto; color: #3c4043; }
+  .empty { text-align: center; color: var(--md-text-muted); padding: 48px 16px; font-size: 14px; }
+  .load { text-align: center; color: var(--md-text-muted); padding: 32px; }
+  .load::after { content: ""; display: inline-block; width: 18px; height: 18px; margin-left: 8px; border: 2px solid var(--md-outline); border-top-color: var(--md-primary); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -4px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .err { background: var(--md-red-soft); color: var(--md-red); padding: 12px 16px; border-radius: var(--md-radius); margin: 16px 0; font-size: 13px; }
+  /* ── experiment meta block ── */
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 8px; font-size: 12px; color: var(--md-text-muted); }
+  .meta-grid .k { color: var(--md-text-muted); }
+  .meta-grid .v { color: var(--md-text); word-break: break-all; }
+  .mock-link {
+    color: var(--md-primary); cursor: pointer; text-decoration: none;
+    border-bottom: 1px dashed var(--md-primary);
+  }
+  .mock-link:hover { background: var(--md-primary-soft); }
+  /* running indicator */
+  .running-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--md-primary-soft); color: var(--md-primary);
+    font-size: 11px; padding: 2px 10px; border-radius: 999px; font-weight: 500;
+  }
+  .running-chip .spinner {
+    width: 10px; height: 10px; border: 2px solid rgba(26,115,232,.3);
+    border-top-color: var(--md-primary); border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  .bar.animated > i { background: var(--md-primary); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+  /* toast */
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: #323232; color: #fff; padding: 10px 18px; border-radius: 8px;
+    font-size: 13px; z-index: 99; opacity: 0; pointer-events: none;
+    transition: opacity .25s; max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 1; }
+  /* ── modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 80;
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .modal {
+    background: #fff; width: 100%; max-width: 720px; max-height: 85vh;
+    border-radius: 16px 16px 0 0; display: flex; flex-direction: column;
+    overflow: hidden; animation: slideup .2s ease-out;
+  }
+  @keyframes slideup { from { transform: translateY(40px); opacity: .4; } to { transform: translateY(0); opacity: 1; } }
+  .modal .mhead {
+    display: flex; align-items: center; gap: 8px; padding: 14px 16px;
+    border-bottom: 1px solid var(--md-outline); font-size: 14px; font-weight: 500;
+  }
+  .modal .mhead .x { margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--md-text-muted); }
+  .modal .mbody { overflow: auto; padding: 14px 16px; font-size: 12px; }
+  .modal .mbody pre {
+    font-family: var(--md-mono); font-size: 11px; white-space: pre-wrap; word-break: break-all;
+    background: var(--md-surface-variant); padding: 12px; border-radius: 8px; max-height: 50vh; overflow: auto;
+  }
+  .modal .mbody .k { color: var(--md-text-muted); font-size: 11px; margin-top: 10px; }
+  @media (min-width: 600px) {
+    .modal-overlay { align-items: center; }
+    .modal { border-radius: 16px; }
+  }
+  /* ── vibe coding (Edit App) ── */
+  .vibe-row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+  .vibe-row label { font-size: 12px; color: var(--md-text-muted); min-width: 84px; }
+  .vibe-row select, .vibe-row input {
+    flex: 1; min-width: 160px; padding: 7px 10px; font-size: 13px;
+    border: 1px solid var(--md-outline); border-radius: 8px; background: #fff;
+  }
+  .vibe-btn {
+    background: var(--md-primary); color: #fff; border: none; border-radius: 8px;
+    padding: 8px 16px; font-size: 13px; cursor: pointer;
+  }
+  .vibe-btn:disabled { opacity: .5; cursor: default; }
+  .vibe-btn.ghost { background: var(--md-gray-soft); color: var(--md-text); }
+  .vibe-btn.danger { background: var(--md-red); }
+  .vibe-log {
+    font-family: var(--md-mono); font-size: 11px; white-space: pre-wrap; word-break: break-all;
+    background: var(--md-surface-variant); border-radius: 8px; padding: 10px;
+    max-height: 30vh; overflow: auto; margin-top: 8px;
+  }
+  .vibe-commit { margin-top: 8px; font-size: 13px; }
+  .vibe-commit a { color: var(--md-primary); }
+  .vibe-err { color: var(--md-red); font-size: 12px; margin-top: 6px; }
+  .vibe-ok { color: var(--md-green); font-size: 13px; margin-top: 6px; font-weight: 500; }
+  .vibe-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .server-status {
+    display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+    color: var(--md-primary); font-size: 12px;
+    border-bottom: 1px dashed var(--md-primary);
+  }
+  .up-icon {
+    display: inline-block; color: var(--md-green); font-size: 10px; cursor: pointer;
+    margin-left: 6px; vertical-align: middle;
+  }
+  .up-icon:hover { transform: scale(1.3); }
+  .tab { display: inline-block; }
+  .target-head { justify-content: space-between; align-items: baseline; }
+  .model-line { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .bench.right { font-size: 16px; font-weight: 500; flex-shrink: 0; }
+  /* endpoint: model url (gray pill) + up/down status pill */
+  .endpoint {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 12px; font-weight: 500;
+  }
+  .endpoint.url {
+    background: var(--md-gray-soft); color: var(--md-text-muted); cursor: pointer;
+  }
+  .endpoint.up {
+    background: #d7f2dd; color: #1e7a34;
+  }
+  .endpoint.down {
+    background: #eceff1; color: #5f6368;
+  }
+  /* running bench script: green RUNNING badge next to gray script pill */
+  .server-status .spinner { width: 10px; height: 10px; border: 2px solid rgba(26,115,232,.3); border-top-color: var(--md-primary); border-radius: 50%; animation: spin .8s linear infinite; }
+  .run-script-link {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    color: var(--md-text-muted); background: var(--md-gray-soft);
+    font-family: var(--md-mono); font-size: 11px;
+  }
+  @media (min-width: 600px) {
+    .content { padding: 24px 24px 64px; }
+    h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <button class="btn-back hidden" id="backBtn" aria-label="Back">←</button>
+  <a class="logo" href="/"><span class="dot">b</span>Benchkit</a>
+  <div class="crumb" id="crumb"></div>
+  <a class="edit-app-link" href="#" onclick="openVibeModal(); return false;">Edit App</a>
+</div>
+<div class="content" id="view"></div>
+
+<script>
+"use strict";
+const $view = document.getElementById("view");
+const $back = document.getElementById("backBtn");
+const $crumb = document.getElementById("crumb");
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shortId = id => id.length > 48 ? id.slice(0, 20) + "…" + id.slice(-24) : id;
+
+async function getJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+  return r.json();
+}
+
+function scoreClass(score, total) {
+  if (total === 0) return "gray";
+  const pct = score / total;
+  return pct >= 0.5 ? "green" : pct > 0 ? "amber" : "red";
+}
+
+/* ── view 1: targets list (most recently updated first) ── */
+function showToast(msg) {
+  let t = document.getElementById("toast");
+  if (!t) { t = document.createElement("div"); t.id = "toast"; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove("show"), 2200);
+}
+function mockAction(what) {
+  showToast(`"${what}" — to be implemented`);
+}
+
+/* ── vibe coding (Edit App) ── */
+let _vibeData = { config: { agents: {}, deploy: {}, git: {} }, commit: "", remote_url: "", running: false };
+let _vibePoll = null;
+
+async function openVibeModal() {
+  const bodyHtml = '<div class="load">Loading</div>';
+  openModal("Edit App", bodyHtml);
+  try {
+    const d = await getJSON("/api/vibe/config");
+    _vibeData = d;
+    renderVibeModal();
+    if (d.running) startVibePoll();
+  } catch (e) {
+    const ov = document.querySelector(".modal-overlay");
+    if (ov) ov.querySelector(".mbody").innerHTML = `<div class="err">${esc(e.message)}</div>`;
+  }
+}
+
+function renderVibeModal() {
+  const ov = document.querySelector(".modal-overlay");
+  if (!ov) return;
+  const d = _vibeData;
+  const agents = Object.entries(d.config.agents || {})
+    .map(([id, a]) => `<option value="${esc(id)}">${esc(a.label || id)}</option>`).join("");
+  ov.querySelector(".mbody").innerHTML = `
+    <div class="vibe-row">
+      <label>Prompt</label>
+      <input id="vibePrompt" type="text" placeholder="기능 변경 프롬프트…">
+    </div>
+    <div class="vibe-row">
+      <label>Coding Agent</label>
+      <select id="vibeAgent">${agents}</select>
+    </div>
+    <div class="vibe-actions">
+      <button class="vibe-btn" id="vibeRunBtn" onclick="vibeRun()">Run</button>
+      <button class="vibe-btn ghost" onclick="vibeDeploy('dev')">Dev 배포</button>
+      <button class="vibe-btn ghost" onclick="vibeDeploy('prod')">Prod 배포</button>
+      <button class="vibe-btn danger" id="vibeRevertBtn" onclick="vibeRevert()">Revert</button>
+    </div>
+    <div id="vibeResult"></div>
+    <div class="vibe-log" id="vibeLog"></div>
+    <div class="vibe-row" style="margin-top:10px">
+      <label>HEAD</label><span style="font-family:var(--md-mono);font-size:12px">${esc(d.commit || "-")}</span>
+    </div>`;
+  if (d.running) {
+    const b = document.getElementById("vibeRunBtn");
+    if (b) b.disabled = true;
+  }
+}
+
+function startVibePoll() {
+  if (_vibePoll) clearInterval(_vibePoll);
+  _vibePoll = setInterval(async () => {
+    try {
+      const d = await getJSON("/api/vibe/tasks");
+      const t = (d.tasks || [])[0];
+      if (!t) return;
+      const logEl = document.getElementById("vibeLog");
+      if (logEl && t.log) logEl.textContent = t.log.join("\n");
+      const res = document.getElementById("vibeResult");
+      if (res) {
+        if (t.status === "done") {
+          res.innerHTML = t.commit
+            ? `<div class="vibe-ok">변경 성공 <a href="${esc(t.commit_url || "#")}" target="_blank" rel="noopener">${esc(t.commit)}</a></div>`
+            : `<div class="vibe-ok">완료 — ${esc(t.note || "no changes")}</div>`;
+          const b = document.getElementById("vibeRunBtn");
+          if (b) b.disabled = false;
+          clearInterval(_vibePoll); _vibePoll = null;
+        } else if (t.status === "error") {
+          res.innerHTML = `<div class="vibe-err">오류: ${esc(t.error || "")}</div>`;
+          const b = document.getElementById("vibeRunBtn");
+          if (b) b.disabled = false;
+          clearInterval(_vibePoll); _vibePoll = null;
+        } else {
+          res.innerHTML = `<div class="vibe-ok">${t.status === "running" ? "코딩 중…" : "대기 중…"}</div>`;
+        }
+      }
+    } catch (_) {}
+  }, 2000);
+}
+
+async function vibeRun() {
+  const prompt = document.getElementById("vibePrompt").value.trim();
+  const agent = document.getElementById("vibeAgent").value;
+  if (!prompt) { showToast("프롬프트를 입력하세요"); return; }
+  const btn = document.getElementById("vibeRunBtn");
+  if (btn) btn.disabled = true;
+  const res = document.getElementById("vibeResult");
+  if (res) res.innerHTML = '<div class="vibe-ok">코딩 시작…</div>';
+  try {
+    await fetch(`/api/vibe/run`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agent, prompt }),
+    });
+    startVibePoll();
+  } catch (e) {
+    if (res) res.innerHTML = `<div class="vibe-err">${esc(e.message)}</div>`;
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function vibeDeploy(target) {
+  const res = document.getElementById("vibeResult");
+  if (res) res.innerHTML = '<div class="vibe-ok">배포 중…</div>';
+  try {
+    const r = await fetch(`/api/vibe/deploy`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (res) {
+      res.innerHTML = d.ok
+        ? `<div class="vibe-ok">배포 완료 (${target})</div><pre style="font-size:11px;white-space:pre-wrap">${esc(d.output || "")}</pre>`
+        : `<div class="vibe-err">배포 실패: ${esc(d.error || d.output || r.statusText)}</div>`;
+    }
+  } catch (e) {
+    if (res) res.innerHTML = `<div class="vibe-err">${esc(e.message)}</div>`;
+  }
+}
+
+async function vibeRevert() {
+  const commit = prompt("되돌릴 commit id:");
+  if (!commit) return;
+  const res = document.getElementById("vibeResult");
+  if (res) res.innerHTML = '<div class="vibe-ok">Revert 중…</div>';
+  try {
+    const r = await fetch(`/api/vibe/revert`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commit }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (res) {
+      res.innerHTML = d.ok
+        ? `<div class="vibe-ok">Revert 성공 <a href="${esc(d.commit_url || "#")}" target="_blank" rel="noopener">${esc(d.commit)}</a></div>`
+        : `<div class="vibe-err">Revert 실패: ${esc(d.error || r.statusText)}</div>`;
+    }
+  } catch (e) {
+    if (res) res.innerHTML = `<div class="vibe-err">${esc(e.message)}</div>`;
+  }
+}
+
+/* ── modal ── */
+function openModal(title, bodyHtml) {
+  const ov = document.createElement("div");
+  ov.className = "modal-overlay";
+  ov.innerHTML = `
+    <div class="modal">
+      <div class="mhead">${esc(title)}<button class="x" aria-label="Close">×</button></div>
+      <div class="mbody">${bodyHtml}</div>
+    </div>`;
+  ov.querySelector(".x").onclick = () => ov.remove();
+  ov.addEventListener("click", e => { if (e.target === ov) ov.remove(); });
+  document.body.appendChild(ov);
+}
+
+/* show server script + models JSON (click on RUNNING next to model url) */
+async function showServerInfo(key) {
+  openModal("Server info…", '<div class="load">Loading</div>');
+  try {
+    const d = await getJSON(`/api/targets/${encodeURIComponent(key)}/server-info`);
+    const script = d.script || {};
+    const models = d.models || {};
+    let html = `
+      <div class="k">Server script (${esc(script.host || "-")})</div>
+      <pre>${esc(script.content || script.error || "(none)")}</pre>
+      <div class="k">${esc(d.model_url || "")}/models</div>
+      <pre>${esc(JSON.stringify(models, null, 2))}</pre>`;
+    const ov = document.querySelector(".modal-overlay");
+    if (ov) ov.querySelector(".mbody").innerHTML = html;
+  } catch (e) {
+    const ov = document.querySelector(".modal-overlay");
+    if (ov) ov.querySelector(".mbody").innerHTML = `<div class="err">${esc(e.message)}</div>`;
+  }
+}
+
+/* show archived bench start script content */
+async function showRunScript(key, runId) {
+  openModal(`Script — ${runId}`, '<div class="load">Loading</div>');
+  try {
+    const d = await getJSON(`/api/targets/${encodeURIComponent(key)}/runs/${encodeURIComponent(runId)}/script`);
+    const ov = document.querySelector(".modal-overlay");
+    if (ov) {
+      ov.querySelector(".mhead").innerHTML = `${esc(d.name)}<button class="x" aria-label="Close">×</button>`;
+      ov.querySelector(".mhead .x").onclick = () => ov.remove();
+      ov.querySelector(".mbody").innerHTML = `<pre>${esc(d.content || "(empty)")}</pre>`;
+    }
+  } catch (e) {
+    const ov = document.querySelector(".modal-overlay");
+    if (ov) ov.querySelector(".mbody").innerHTML = `<div class="err">${esc(e.message)}</div>`;
+  }
+}
+
+async function renderRuns() {
+  $crumb.textContent = "";
+  $back.classList.add("hidden");
+  const data = await getJSON("/api/targets");
+  _renderTargets(data);
+}
+
+/* render the targets list from snapshot data (also used by WebSocket) */
+let _scrollY = 0;
+function _renderTargets(data) {
+  _scrollY = window.scrollY;
+  const targets = data.targets || [];
+  if (!targets.length) {
+    $view.innerHTML = '<div class="empty">No results yet.<br>Runs from start-swebench-*.sh will appear here.</div>';
+    return;
+  }
+  let html = "<h1>Test Targets</h1><div class='subtitle'>model · url · bench · runs</div>";
+  for (const t of targets) {
+    const runs = t.runs || [];
+    const urlPill = t.model_url
+      ? `<span class="endpoint url" title="server info" onclick="showServerInfo('${esc(t.key)}')">${esc(t.model_url)}</span>`
+      : "";
+    const statusPill = t.server_up
+      ? `<span class="endpoint up" title="server up">UP</span>`
+      : `<span class="endpoint down" title="server down">DOWN</span>`;
+    html += `
+    <div class="card">
+      <div class="row1 target-head">
+        <span class="model-line">${esc(t.model || "-")}<span class="tab">\u00A0\u00A0\u00A0\u00A0</span>${urlPill} <span class="tab">\u00A0</span>${statusPill}</span>
+        <span class="bench right">${esc(t.bench)}</span>
+      </div>
+      <div class="section">Runs</div>`;
+    // 현재 실행 중인 벤치 스크립트 (running 인 run 의 bench_script)
+    const runningScripts = new Set(runs.filter(r => r.running).map(r => r.bench_script).filter(Boolean));
+    for (const r of runs) {
+      const rpct = r.total ? Math.round((r.score / r.total) * 100) : 0;
+      const comment = t.comments[r.run_id] || "";
+      const scriptRunning = runningScripts.has(r.bench_script);
+      html += `
+      <div class="card" style="margin:6px 0;background:var(--md-surface-variant)" onclick="navRun('${esc(t.key)}','${esc(r.run_id)}')">
+        <div class="row1">
+          <span class="bench" style="font-size:14px">${esc(r.run_id)}</span>
+          ${r.bench_script
+            ? `<a class="run-script-link" onclick="event.stopPropagation(); showRunScript('${esc(t.key)}','${esc(r.run_id)}')">${esc(r.bench_script)}</a>${scriptRunning ? ' <span class="endpoint up">RUNNING</span>' : ""}`
+            : ""}
+          <span class="score ${scoreClass(r.score, r.total)}">${r.score}/${r.total}<small> · ${rpct}%</small></span>
+        </div>
+        <div class="row2">
+          <span class="stat">Total <b>${r.total}</b></span>
+          <span class="stat">Attempts <b>${r.attempted}</b></span>
+          <span class="stat">Solved <b>${r.resolved}</b></span>
+          ${r.last_run_at ? `<span class="stat">${esc(r.last_run_at)}</span>` : ""}
+        </div>
+        ${comment ? `<div class="row2" style="color:var(--md-text-muted);font-size:12px">💬 ${esc(comment)}</div>` : ""}
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  $view.innerHTML = html;
+  requestAnimationFrame(() => window.scrollTo(0, _scrollY));
+}
+
+/* ── view 2: run detail ── */
+async function openBench(key, runId) {
+  $back.classList.remove("hidden");
+  $crumb.textContent = `${key.slice(0, 30)}… / ${runId}`;
+  $view.innerHTML = '<div class="load">Loading</div>';
+  try {
+    const d = await getJSON(`/api/targets/${encodeURIComponent(key)}/runs/${encodeURIComponent(runId)}`);
+    openBenchInner(d, key, runId);
+  } catch (e) {
+    $view.innerHTML = `<div class="err">${esc(e.message)}</div>`;
+  }
+}
+
+function openBenchInner(d, key, runId) {
+  const s = d.summary || {};
+  const ex = d.experiment || {};
+  const pct = s.total_predicted ? Math.round((s.resolved / s.total_predicted) * 100) : 0;
+  const scoreCls = scoreClass(s.resolved || 0, s.total_predicted || 0);
+  const upPill = d.server_up ? '<span class="endpoint up" id="upPill">UP</span>' : "";
+  const runningPill = ex.running ? '<span class="endpoint up" id="runningPill">RUNNING</span>' : "";
+  let html = `
+      <div class="detail-title">${esc(d.bench || key)} — ${esc(runId)}</div>
+      <div class="badges">
+        <span class="badge gray">${esc(runId)}</span>
+        <span class="badge gray">${esc(d.dataset || "")}</span>
+        <span class="badge ${scoreCls}">${s.resolved ?? 0} / ${s.total_predicted ?? 0} (${pct}%)</span>
+      </div>
+      <div class="meta-grid">
+        <span class="k">Model</span><span class="v">${esc(ex.model || "-")}</span>
+        <span class="k">Model URL</span><span class="v" id="modelUrlCell">${esc(ex.model_url || "-")} ${upPill}</span>
+        <span class="k">Server</span><span class="v">${esc(ex.server_host || "-")} ${ex.server_script ? `<a class="mock-link" onclick="mockAction('start server: ${esc(ex.server_script)}')">${esc(ex.server_script)}</a>` : ""}</span>
+        <span class="k">Bench script</span>
+        <span class="v" id="benchScriptCell">${ex.bench_script ? `<a class="mock-link" onclick="mockAction('run bench: ${esc(ex.bench_script)}')">${esc(ex.bench_script)}</a> ${runningPill}` : "-"}</span>
+      </div>
+      <div class="section">Comment</div>
+      <div style="display:flex;gap:8px">
+        <input id="commentInput" style="flex:1;padding:8px 12px;border:1px solid var(--md-outline);border-radius:8px;font-size:13px" placeholder="Add a note for this run…" value="${esc(d.comment || "")}">
+        <button onclick="updateComment('${esc(key)}','${esc(runId)}')" style="background:var(--md-primary);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px">Update</button>
+      </div>
+      <div class="summary-grid">
+        <div class="sum-cell res"><div class="n">${s.resolved ?? 0}</div><div class="l">Resolved</div></div>
+        <div class="sum-cell unres"><div class="n">${s.unresolved ?? 0}</div><div class="l">Unresolved</div></div>
+        <div class="sum-cell"><div class="n">${s.missing ?? 0}</div><div class="l">Missing</div></div>
+        <div class="sum-cell"><div class="n">${s.not_evaluated ?? 0}</div><div class="l">Pending</div></div>
+      </div>
+      <div class="section">Instances (${(d.instances || []).length})</div>`;
+    const instances = d.instances || [];
+    if (!instances.length) html += '<div class="empty">No instances solved yet.</div>';
+    for (const inst of instances) {
+      const v = inst.verdict || inst.exit_status || "unknown";
+      const dotCls = inst.verdict === "resolved" ? "resolved" : inst.verdict === "unresolved" ? "unresolved" : inst.verdict === "missing" ? "missing" : "unknown";
+      html += `
+      <div class="card" onclick="navInstance('${esc(key)}','${esc(runId)}','${esc(inst.instance_id)}')">
+        <div class="inst">
+          <span class="dot ${dotCls}"></span>
+          <span class="id">${esc(shortId(inst.instance_id))}</span>
+          <span class="meta">${inst.api_calls ?? "?"} calls · ${inst.msg_count ?? 0} msgs</span>
+        </div>
+      </div>`;
+    }
+    $view.innerHTML = html;
+}
+
+async function updateComment(key, runId) {
+  const val = document.getElementById("commentInput").value;
+  try {
+    await fetch(`/api/targets/${encodeURIComponent(key)}/runs/${encodeURIComponent(runId)}/comment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ comment: val }),
+    });
+    showToast(`Comment saved for ${runId}`);
+  } catch (e) {
+    showToast(`Failed: ${e.message}`);
+  }
+}
+
+/* ── view 3: instance detail ── */
+async function openInstance(key, runId, instanceId) {
+  $back.classList.remove("hidden");
+  $crumb.textContent = `${runId} / instance`;
+  $view.innerHTML = '<div class="load">Loading</div>';
+  try {
+    const d = await getJSON(`/api/targets/${encodeURIComponent(key)}/runs/${encodeURIComponent(runId)}/${encodeURIComponent(instanceId)}`);
+    const st = d.exit_status;
+    const badgeCls = st === "Submitted" ? "green" : st === "RepeatedFormatError" || st === "LimitsExceeded" ? "red" : "gray";
+    let html = `
+      <div class="detail-title">${esc(d.instance_id)}</div>
+      <div class="badges">
+        <span class="badge ${badgeCls}">${esc(st || "unknown")}</span>
+        ${d.api_calls ? `<span class="badge gray">${d.api_calls} api calls</span>` : ""}
+        ${d.model ? `<span class="badge gray">${esc(d.model)}</span>` : ""}
+      </div>`;
+    if (d.problem) {
+      html += `<div class="section">Problem</div><div class="problem">${esc(d.problem)}</div>`;
+    }
+    html += `<div class="section">Trajectory (${(d.steps || []).length})</div>`;
+    const steps = d.steps || [];
+    if (!steps.length) html += '<div class="empty">No trajectory available.</div>';
+    steps.forEach((s, i) => {
+      let cmd = s.command || "";
+      try {
+        const parsed = JSON.parse(cmd);
+        cmd = parsed.command || cmd;
+      } catch (_) {}
+      const body = [];
+      if (s.reasoning) body.push(`<div class="reasoning">${esc(s.reasoning)}</div>`);
+      if (cmd) body.push(`<div class="cmd-full">$ ${esc(cmd)}</div>`);
+      if (s.output) body.push(`<div class="out">${esc(s.output)}</div>`);
+      html += `
+      <details class="step" ${i === 0 ? "open" : ""}>
+        <summary><span class="idx">${i + 1}</span><span class="cmd">${esc(cmd.slice(0, 90)) || esc(s.type)}</span></summary>
+        ${body.join("") || '<div class="out">(no output)</div>'}
+      </details>`;
+    });
+    $view.innerHTML = html;
+  } catch (e) {
+    $view.innerHTML = `<div class="err">${esc(e.message)}</div>`;
+  }
+}
+
+$back.addEventListener("click", () => history.back());
+
+/* ── WebSocket auto-refresh ── */
+let _currentView = { name: "landing", key: "", runId: "" };
+
+function setView(name, key, runId) {
+  _currentView = { name, key, runId };
+}
+
+/* run detail: periodically re-fetch the run data (instances + stats) */
+let _runTimer = null;
+function startRunPolling(key, runId) {
+  if (_runTimer) clearInterval(_runTimer);
+  _runTimer = setInterval(async () => {
+    if (_currentView.name !== "run") return;
+    try {
+      const d = await getJSON(`/api/targets/${encodeURIComponent(key)}/runs/${encodeURIComponent(runId)}`);
+      openBenchInner(d, key, runId);
+    } catch (_) { /* keep stale view on error */ }
+  }, 5000);
+}
+
+/* WebSocket: receive full snapshot every 5s → update landing (and run summary) */
+function connectWS() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  const ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onmessage = (ev) => {
+    let data;
+    try { data = JSON.parse(ev.data); } catch (_) { return; }
+    if (_currentView.name === "landing") {
+      _renderTargets(data);
+    } else if (_currentView.name === "run") {
+      // update only the run summary fields in place; instances refresh via polling
+      const t = (data.targets || []).find(x => x.key === _currentView.key);
+      if (t) {
+        const r = (t.runs || []).find(x => x.run_id === _currentView.runId);
+        if (r) {
+          const el = document.querySelector(".summary-grid");
+          if (el) {
+            const cells = el.querySelectorAll(".sum-cell .n");
+            if (cells.length >= 4 && cells[0]) cells[0].textContent = r.resolved;
+            if (cells[1]) cells[1].textContent = (r.total - r.resolved);
+          }
+          const scoreEl = document.querySelector(".badges .badge:last-child");
+          if (scoreEl) scoreEl.textContent = `${r.resolved} / ${r.total} (${r.total ? Math.round(r.resolved / r.total * 100) : 0}%)`;
+        }
+        // UP pill after model url (server_up from snapshot)
+        const urlCell = document.getElementById("modelUrlCell");
+        if (urlCell) {
+          urlCell.querySelectorAll(".endpoint.up").forEach(p => p.remove());
+          if (t.server_up) {
+            const p = document.createElement("span");
+            p.className = "endpoint up"; p.id = "upPill"; p.textContent = "UP";
+            urlCell.appendChild(document.createTextNode(" "));
+            urlCell.appendChild(p);
+          }
+        }
+        // RUNNING pill after bench script (running from snapshot)
+        const scriptCell = document.getElementById("benchScriptCell");
+        if (scriptCell) {
+          scriptCell.querySelectorAll(".endpoint.up").forEach(p => p.remove());
+          if (r && r.running) {
+            const p = document.createElement("span");
+            p.className = "endpoint up"; p.id = "runningPill"; p.textContent = "RUNNING";
+            scriptCell.appendChild(document.createTextNode(" "));
+            scriptCell.appendChild(p);
+          }
+        }
+      }
+    }
+  };
+  ws.onclose = () => { setTimeout(connectWS, 3000); };
+}
+
+/* hash-based routing: #/<target-key>/<run-id>[/<instance-id>] */
+async function route() {
+  const seg = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  if (seg.length === 0) { setView("landing", "", ""); await renderRuns(); }
+  else if (seg.length === 2) { setView("run", decodeURIComponent(seg[0]), decodeURIComponent(seg[1])); await openBench(decodeURIComponent(seg[0]), decodeURIComponent(seg[1])); startRunPolling(decodeURIComponent(seg[0]), decodeURIComponent(seg[1])); }
+  else if (seg.length >= 3) { setView("instance", decodeURIComponent(seg[0]), decodeURIComponent(seg[1])); await openInstance(decodeURIComponent(seg[0]), decodeURIComponent(seg[1]), decodeURIComponent(seg.slice(2).join("/"))); }
+}
+/* Navigation helpers (nav- prefix to avoid clashing with render function names) */
+function navRun(k, r) { location.hash = `/${encodeURIComponent(k)}/${encodeURIComponent(r)}`; }
+function navInstance(k, r, i) { location.hash = `/${encodeURIComponent(k)}/${encodeURIComponent(r)}/${encodeURIComponent(i)}`; }
+window.addEventListener("hashchange", route);
+connectWS();
+route().catch(e => { $view.innerHTML = `<div class="err">${esc(e.message)}</div>`; });
+</script>
+</body>
+</html>

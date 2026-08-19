@@ -67,7 +67,7 @@ ScoreReport          * ── 1 Attempt/ArtifactSet
 benchmarks/
   swebench-verified/benchmark.yaml
   swebench-pro/benchmark.yaml
-  terminal-bench-2.1/benchmark.yaml
+  terminal-bench-2.0/benchmark.yaml
 models/
   models.yaml
 configs/

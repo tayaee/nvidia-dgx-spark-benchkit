@@ -1,0 +1,12 @@
+{
+  "run_id": 1,
+  "benchmark": "terminal-bench-2.0",
+  "dataset": "harborframework/terminal-bench-2.0",
+  "created_at": "2026-08-19T04:46:08Z",
+  "status": "active",
+  "model": "qwen3.8-27b",
+  "model_url": "http://spark1.local:30000/v1",
+  "server_script": "~/git/dgx-spark-qwen38/run.sh",
+  "server_host": "spark1.local",
+  "last_run_at": "2026-08-19T04:46:08Z"
+}
