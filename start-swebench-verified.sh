@@ -1,24 +1,26 @@
 #!/usr/bin/env bash
-# start-swebench-verified.sh — SWE-bench Verified 클라이언트 실행 (로컬 WSL2)
+# start-swebench-verified.sh — run SWE-bench Verified client (local WSL2)
 #
 # Usage:
-#   RUN_ID=1 TUNE_NO=1 PARALLELISM=2 ./start-swebench-verified.sh --limit-new 2
+#   RUN_ID=1 SCRIPT_VER=1 PARALLELISM=2 ./start-swebench-verified.sh --limit-new 2
 #
-# 동작:
-#   - mini-swe-agent (litellm 기반) 로 실제 SWE-bench Verified 인스턴스를 푼다.
-#   - 모델/엔드포인트는 /v1/models 자동 탐지 (기본 spark1.local:30000)
-#   - preds.json(raw) → predictions.jsonl(canonical) 변환
-#   - 이미 완료된 인스턴스는 건너뛰고, --limit-new N 만큼 새로 푼다.
-#   - 실행 스크립트는 results/run-$RUN_ID/archive/ 에 TUNE_NO 로 보존.
+# Behavior:
+#   - Solves real SWE-bench Verified instances via mini-swe-agent (litellm).
+#   - Model/endpoint autodetected via /v1/models (default spark1.local:30000).
+#   - preds.json (raw) → predictions.jsonl (canonical) conversion.
+#   - Completed instances are skipped; new instances run up to --limit-new N.
+#   - Launch script archived under results/run-$RUN_ID/archive/ (archive/vNNN-...).
 #
 # Environment:
-#   RUN_ID            — 필수, 양의 정수
-#   TUNE_NO           — 필수, 양의 정수 (archive 충돌 시 증가 요구)
-#   PARALLELISM       — worker 수 (기본 2)
-#   OPENAI_BASE_URL   — 기본 http://spark1.local:30000/v1
-#   OPENAI_API_KEY    — 기본 none
-#   MODEL_NAME        — 명시적 모델명 (없으면 /v1/models 자동 탐지)
-#   PYTHON            — mini-swe-agent 실행 커맨드 (기본 자동 탐지)
+#   RUN_ID            — required, non-negative integer
+#   SCRIPT_VER        — required, non-negative integer. Config (server/client
+#                       settings) version number. Increment only when the
+#                       config changes; plain reruns keep the same value.
+#   PARALLELISM       — worker count (default 2)
+#   OPENAI_BASE_URL   — default http://spark1.local:30000/v1
+#   OPENAI_API_KEY    — default none
+#   MODEL_NAME        — explicit model name (autodetected via /v1/models if unset)
+#   PYTHON            — mini-swe-agent invocation command (autodetected if unset)
 
 set -Eeuo pipefail
 cd "$(cd "$(dirname "$0")" && pwd)"
@@ -29,7 +31,7 @@ source ./benchmark-lib.sh
 BENCHMARK="swebench-verified"
 DATASET="${DATASET:-SWE-bench/SWE-bench_Verified}"
 
-# target 키 계산에 모델명/URL이 필요하므로 main_common(→ bench_root) 보다 먼저 결정한다.
+# target_key needs model/url, so resolve them before main_common(→ bench_root).
 PARALLELISM="${PARALLELISM:-2}"
 export OPENAI_BASE_URL="${OPENAI_BASE_URL:-http://spark1.local:30000/v1}"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-none}"
@@ -37,7 +39,7 @@ export MSWEA_COST_TRACKING="${MSWEA_COST_TRACKING:-ignore_errors}"
 
 log(){ echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
-# ── 모델 결정: /v1/models 자동 탐지 ──
+# ── Model resolution: autodetect via /v1/models ──
 if [[ -z "${MODEL_NAME:-}" ]]; then
     log "Auto-discovering model from $OPENAI_BASE_URL/models ..."
     MODEL_NAME="$(curl -sf --max-time 10 "$OPENAI_BASE_URL/models" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["data"][0]["id"])' 2>/dev/null || true)"
@@ -45,16 +47,16 @@ if [[ -z "${MODEL_NAME:-}" ]]; then
 fi
 export MODEL_NAME
 
-# main_common 이 --limit-new 파싱 + RUN_ID/TUNE_NO/LIMIT_NEW 검증을 수행한다.
+# main_common parses --limit-new and validates RUN_ID / SCRIPT_VER / LIMIT_NEW.
 main_common "$@"
-log "model=$MODEL_NAME run_id=$RUN_ID tune_no=$TUNE_NO parallelism=$PARALLELISM limit_new=$LIMIT_NEW"
+log "model=$MODEL_NAME run_id=$RUN_ID script_ver=$SCRIPT_VER parallelism=$PARALLELISM limit_new=$LIMIT_NEW"
 
-# 실험 메타데이터를 manifest.json 에 기록 (웹 대시보드 표시용)
+# Record experiment metadata in manifest.json (web dashboard display).
 export SERVER_SCRIPT="${SERVER_SCRIPT:-~/git/dgx-spark-qwen38/run.sh}"
 export SERVER_HOST="${SERVER_HOST:-spark1.local}"
 update_manifest
 
-# ── Python (mini-swe-agent) 실행 커맨드 결정 ──
+# ── Python (mini-swe-agent) invocation ──
 if [[ -z "${PYTHON:-}" ]]; then
     if python3 -c 'import minisweagent' 2>/dev/null; then
         PYTHON="python3"
@@ -65,14 +67,14 @@ if [[ -z "${PYTHON:-}" ]]; then
     fi
 fi
 
-# ── 실행 디렉터리: results/run-$RUN_ID/swebench-verified/predictions/raw ──
-#    (main_common 이 BENCHMARK 기반 RUN_ROOT 를 계산해 둔다)
+# ── Output directory: results/run-$RUN_ID/swebench-verified/predictions/raw ──
+#    (main_common computes the BENCHMARK-based RUN_ROOT.)
 RUN_DIR="$RUN_ROOT"
 RAW_DIR="$RUN_DIR/predictions/raw"
 mkdir -p "$RAW_DIR"
 RUN_LEDGER="$RUN_DIR/state.jsonl"
 
-# ── 이미 완료된 인스턴스 수 파악 (state.jsonl 의 solved 레코드) ──
+# ── Number of already-completed instances (solved records in state.jsonl) ──
 count_solved(){
   python3 - "$RUN_LEDGER" <<'PY'
 import json, sys
@@ -95,14 +97,14 @@ PY
 }
 DONE_COUNT=$(count_solved)
 
-# ── archive: canonical 스크립트 보존 ──
+# ── archive: canonical launch script ──
 archive_script "$0" "start-swebench-verified.sh"
 
-# ── 1회 배치 실행 ──
-#    mini-swe-agent 는 --redo-existing 없이 이미 푼 인스턴스(출력 디렉터리에
-#    instance 디렉터리가 있는 것)를 자동으로 건너뛴다. slice 를
-#    완료수 + 시도수 만큼 넉넉히 잡아, 완료분은 스킵하고 새 인스턴스를 푼다.
-#    LIMIT_MODE=any 면 LIMIT_NEW 개, ok 모드면 LIMIT_NEW_OK 개 목표로 시도.
+# ── Single batch ──
+# mini-swe-agent skips any instance already present in the output dir without
+# --redo-existing, so the slice is set generously (done + try_n). Completed
+# instances are auto-skipped; the new slice yields up to --limit-new instances.
+# LIMIT_MODE=any → try LIMIT_NEW; ok mode → target LIMIT_NEW_OK.
 if [[ "$LIMIT_MODE" == "ok" ]]; then
   TRY_COUNT="$LIMIT_NEW"
 else
@@ -129,7 +131,7 @@ run_batch(){
   set +x
   popd >/dev/null
 
-  # ── state.jsonl 에 완료 레코드 기록 ──
+  # ── Append completion records to state.jsonl ──
   PREDS_JSON="$RAW_DIR/preds.json"
   if [[ -s "$PREDS_JSON" ]]; then
       python3 - "$PREDS_JSON" "$RUN_LEDGER" "$MODEL_NAME" <<'PY'
@@ -165,7 +167,7 @@ PY
       log "Wrote $(python3 -c "import json;print(len(json.load(open('$PREDS_JSON'))))") instance(s) to $RUN_LEDGER"
   fi
 
-  # ── canonical predictions.jsonl 변환 ──
+  # ── Convert to canonical predictions.jsonl ──
   CANON_DIR="$RUN_DIR/predictions/canonical"
   mkdir -p "$CANON_DIR"
   python3 - "$PREDS_JSON" "$CANON_DIR/predictions.jsonl" <<'PY'
@@ -183,7 +185,7 @@ print(f"wrote {len(preds)} predictions -> {out_path}")
 PY
 }
 
-# 이번 배치에서 새로 solved 된 수 (성공 판정)
+# Newly solved in this batch (success criterion).
 _LAST_OK_COUNT=$DONE_COUNT
 count_new_ok(){
   local now

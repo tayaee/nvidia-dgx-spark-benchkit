@@ -1,3 +1,0 @@
-```bash
-cat /app/text.gcode
-```

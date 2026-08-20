@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
-# start-terminal-bench-2.0.sh — Terminal-Bench 2.0 실행 (로컬 WSL2)
+# start-terminal-bench-2.0.sh — run Terminal-Bench 2.0 (local WSL2)
 #
 # Usage:
-#   RUN_ID=1 TUNE_NO=1 ./start-terminal-bench-2.0.sh --limit-new 1
+#   RUN_ID=1 SCRIPT_VER=1 ./start-terminal-bench-2.0.sh --limit-new 1
 #
-# 동작:
-#   - harborframework/terminal-bench-2.0 (HF) 에서 태스크를 가져와 실제로 푼다.
-#   - 모델은 spark1.local:30000 의 qwen3.8-27b (자동 탐지).
-#   - 각 태스크는 전용 docker 이미지에서 검증 (tests/test.sh + test_outputs.py).
-#   - 완료된 인스턴스는 .solved 트래커로 건너뛰고, --limit-new N 만큼 새로 푼다.
-#   - 실행 스크립트는 results/run-$RUN_ID/terminal-bench-2.0/archive/ 에 보존.
+# Behavior:
+#   - Pull tasks from harborframework/terminal-bench-2.0 (HF) and run them.
+#   - Model: qwen3.8-27b on spark1.local:30000 (auto-detected).
+#   - Each task is verified by its dedicated docker image
+#     (tests/test.sh + test_outputs.py).
+#   - Completed instances are skipped via the .solved tracker; new instances
+#     are run up to --limit-new N.
+#   - The launch script is archived under
+#     results/run-$RUN_ID/terminal-bench-2.0/archive/ (archive/vNNN-...sh).
 #
 # Environment:
-#   RUN_ID            — 필수, 양의 정수
-#   TUNE_NO           — 필수, 양의 정수 (archive 충돌 시 증가 요구)
-#   OPENAI_BASE_URL / BENCKKIT_ENDPOINT — 기본 http://spark1.local:30000/v1
-#   MODEL_NAME / BENCKKIT_MODEL         — 기본 qwen3.8-27b (자동 탐지)
+#   RUN_ID            — required, non-negative integer
+#   SCRIPT_VER        — required, non-negative integer. Config (server/client
+#                       settings) version number. Increment only when the
+#                       config changes; plain reruns keep the same value.
+#   OPENAI_BASE_URL / BENCKKIT_ENDPOINT — default http://spark1.local:30000/v1
+#   MODEL_NAME / BENCKKIT_MODEL         — default qwen3.8-27b (auto-detected)
 
 set -Eeuo pipefail
 cd "$(cd "$(dirname "$0")" && pwd)"
@@ -26,24 +31,25 @@ source ./benchmark-lib.sh
 BENCHMARK="terminal-bench-2.0"
 DATASET="${DATASET:-harborframework/terminal-bench-2.0}"
 
-# main_common 이 --limit-new 파싱 + RUN_ID/TUNE_NO/LIMIT_NEW 검증을 수행한다.
+# main_common parses --limit-new and validates RUN_ID / SCRIPT_VER / LIMIT_NEW.
 main_common "$@"
 
-export BENCKKIT_ENDPOINT="${BENCKKIT_ENDPOINT:-http://spark1.local:30000/v1}"
-export BENCKKIT_MODEL="${BENCKKIT_MODEL:-qwen3.8-27b}"
-# smoke.py 는 results/<run_id>/<benchmark>/ 구조를 쓰므로,
-# run_id=run-$RUN_ID 로 두면 벤치별 레이아웃(results/run-1/terminal-bench-2.0/)과 일치한다.
+# Model/endpoint already resolved by main_common → resolve_model_target
+# (BENCKKIT_ENDPOINT / BENCKKIT_MODEL / OPENAI_BASE_URL / MODEL_NAME).
+# Re-resolving here would race the target path computation and split results.
+# smoke.py expects results/<run_id>/<benchmark>/, so BENCKKIT_RUN_ID is the
+# bench-specific subdir (results/run-1/terminal-bench-2.0/).
 export BENCKKIT_RUN_ID="${BENCKKIT_RUN_ID:-run-$RUN_ID}"
 export BENCKKIT_RESULTS="${BENCKKIT_RESULTS:-$PWD/results}"
 
-# 실험 메타데이터를 manifest.json 에 기록 (웹 대시보드 표시용)
+# Record experiment metadata in manifest.json (web dashboard display).
 export SERVER_SCRIPT="${SERVER_SCRIPT:-~/git/dgx-spark-qwen38/run.sh}"
 export SERVER_HOST="${SERVER_HOST:-spark1.local}"
 update_manifest
 
 log(){ echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
-# ── archive: canonical 스크립트 보존 ──
+# ── archive: canonical launch script ──
 archive_script "$0" "start-terminal-bench-2.0.sh"
 
 SOLVED_FILE="results/.solved/terminal-bench-2.0.solved"
@@ -62,32 +68,33 @@ else
   TRY_COUNT="${LIMIT_NEW:-0}"
 fi
 
-# 이번 실행에서 이미 시도한 인스턴스 (성공/실패 불문) — 다음 배치에서 스킵
+# Track every instance attempted in this run (success or failure) so the next
+# batch skips them instead of retrying.
 ATTEMPTED_FILE="$RUN_ROOT/.attempted"
 touch "$ATTEMPTED_FILE"
 
-# ── 1회 배치 실행: smoke.py (실제 inference + docker 검증) ──
+# ── Single batch: smoke.py (real inference + docker verifier) ──
 run_batch(){
   local try_n=1
   if (( TRY_COUNT > 0 )); then try_n=$TRY_COUNT; fi
-  # 지금까지 시도한 인스턴스는 스킵하고 다음 문제부터 푼다
+  # Skip instances already attempted this run.
   local skip
   skip=$(paste -sd ' ' "$ATTEMPTED_FILE")
   log "model=$BENCKKIT_MODEL endpoint=$BENCKKIT_ENDPOINT run_root=$RUN_ROOT trying up to $try_n new instance(s)"
-  # 결과는 results/run-$RUN_ID/terminal-bench-2.0/ 에 쌓인다.
+  # Results accumulate at results/run-$RUN_ID/terminal-bench-2.0/.
   local out
   out="$(
     ./.venv/bin/python bin/smoke.py "$BENCHMARK" --limit-new "$try_n" ${skip:+--skip-ids "$skip"} 2>&1
   )" || true
   echo "$out"
-  # 시도한 인스턴스 기록 (--- [i/n] bench / <iid> --- 라인 파싱)
+  # Record attempted instance ids from the per-instance progress lines.
   echo "$out" | sed -nE 's/^--- \[[0-9]+\/[0-9]+\] .* \/ ([^ ]+) ---$/\1/p' \
     | while read -r iid; do
         grep -qxF "$iid" "$ATTEMPTED_FILE" 2>/dev/null || echo "$iid" >> "$ATTEMPTED_FILE"
       done
 }
 
-# 이번 배치에서 새로 PASS(성공)된 수 — smoke.py 는 PASS 시 .solved 트래커에 기록한다
+# Newly PASSed in this batch — smoke.py appends to .solved on PASS.
 _LAST_OK_COUNT=$DONE_COUNT
 count_new_ok(){
   local now

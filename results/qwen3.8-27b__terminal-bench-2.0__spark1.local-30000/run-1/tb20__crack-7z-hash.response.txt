@@ -1,3 +1,0 @@
-```bash
-cd /app && 7z x secrets.7z -y && cat secret_file.txt > solution.txt
-```

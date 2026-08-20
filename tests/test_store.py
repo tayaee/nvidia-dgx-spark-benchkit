@@ -111,7 +111,8 @@ class TestResume:
 
 class TestAliasCompat:
     def test_run_id_alias_accepted(self, store):
-        # legacy RUN_ID/TUNE_NO alias resolution: store accepts them as canonical IDs
+        # legacy RUN_ID / SCRIPT_VER (TUNE_NO) alias resolution: store accepts them
+        # as canonical IDs, not as replacements for the canonical experiment_id.
         store.create_experiment("exp-20260101-001", {"run_id_alias": "1"})
         loaded = store.get_experiment("exp-20260101-001")
         assert loaded["run_id_alias"] == "1"

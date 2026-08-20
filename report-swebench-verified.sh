@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# report.sh — 구조화된 요약 기반 리포트
+# report.sh — structured-summary report
 #
 # Usage:
 #   RUN_ID=1 ./report.sh
 #
-# 동작:
-#   - 로그 스크래핑 대신 results/run-$RUN_ID/eval/summary.json 을 읽는다.
-#   - resolved / unresolved / missing / not-evaluated 및 resolved/total 표시.
+# Behavior:
+#   - Reads results/run-$RUN_ID/eval/summary.json instead of scraping logs.
+#   - Displays resolved / unresolved / missing / not-evaluated and resolved/total.
 #
 # Environment:
-#   RUN_ID   — 필수, 양의 정수
+#   RUN_ID   — required, positive integer
 
 set -Eeuo pipefail
 cd "$(cd "$(dirname "$0")" && pwd)"
@@ -20,8 +20,8 @@ source ./benchmark-lib.sh
 BENCHMARK="swebench-verified"
 DATASET="${DATASET:-SWE-bench/SWE-bench_Verified}"
 
-# report-swebench-verified.sh 는 --limit-new/TUNE_NO 가 필요 없으므로 기본값을 인자로 채워 검증을 통과시킨다.
-TUNE_NO="${TUNE_NO:-0}"
+# report script needs no --limit-new/SCRIPT_VER; fill defaults to pass validation.
+SCRIPT_VER="${SCRIPT_VER:-0}"
 main_common --limit-new 1
 
 RUN_DIR="$RUN_ROOT"

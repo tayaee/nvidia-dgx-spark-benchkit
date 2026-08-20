@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# deploy-to-dev.sh — dev 배포: 원격 main 을 당겨와 로컬 웹 서버에 반영.
-# web.sh 루프가 서버를 재시작하므로, 여기서는 코드만 갱신한다.
+# deploy-to-dev.sh — dev deploy: pull remote main and update the local web server.
+# The web.sh loop restarts the server, so this only refreshes the code.
 set -Eeuo pipefail
 cd "$(cd "$(dirname "$0")" && pwd)"
 

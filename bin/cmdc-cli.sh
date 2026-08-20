@@ -6,5 +6,5 @@ CMDC="$(command -v cmdc || command -v command-code || echo /home/user1/.local/bi
 if [[ "$CMDC" == *deepseek-cli.sh ]]; then
   exec "$CMDC" "$@"
 fi
-# cmdc 는 -p "<query>" 형식으로 프롬프트를 받는다. 인자를 그대로 전달.
+# cmdc takes the prompt as -p "<query>"; pass args through unchanged.
 exec "$CMDC" "$@"

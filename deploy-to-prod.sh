@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# deploy-to-prod.sh — prod 배포: 원격 main 을 당겨와 반영.
-# (dev 와 동일한 구조 — prod 환경 차이는 추후 확장)
+# deploy-to-prod.sh — prod deploy: pull remote main and update.
+# (Same structure as dev — prod-specific differences can be added later.)
 set -Eeuo pipefail
 cd "$(cd "$(dirname "$0")" && pwd)"
 

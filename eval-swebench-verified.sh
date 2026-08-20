@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# eval.sh — 공식 SWE-bench evaluator 연결 (로컬 Docker)
+# eval.sh — official SWE-bench evaluator (local Docker)
 #
 # Usage:
 #   RUN_ID=1 ./eval.sh
 #
-# 동작:
-#   - results/run-$RUN_ID/predictions/canonical/predictions.jsonl 을 공식
-#     swebench harness 에 넘겨 평가한다.
-#   - 이미 평가된 인스턴스는 건너뛰고 미평가 인스턴스만 평가 (증분).
-#   - harness 출력(로그/테스트 결과)은 results/run-$RUN_ID/eval/raw/ 로,
-#     최종 요약은 eval/summary.json, eval/breakdown.json 으로 생성.
+# Behavior:
+#   - Feed results/run-$RUN_ID/predictions/canonical/predictions.jsonl to the
+#     official swebench harness for evaluation.
+#   - Skip already-evaluated instances; evaluate only pending ones (incremental).
+#   - Harness output (logs/test results) goes to results/run-$RUN_ID/eval/raw/;
+#     final summary to eval/summary.json, eval/breakdown.json.
 #
 # Environment:
-#   RUN_ID   — 필수, 양의 정수
-#   MAX_WORKERS — 기본 4
-#   TIMEOUT  — 인스턴스당 테스트 타임아웃 (초), 기본 1800
+#   RUN_ID   — required, positive integer
+#   MAX_WORKERS — default 4
+#   TIMEOUT  — per-instance test timeout (seconds), default 1800
 
 set -Eeuo pipefail
 cd "$(cd "$(dirname "$0")" && pwd)"
@@ -25,8 +25,8 @@ source ./benchmark-lib.sh
 BENCHMARK="swebench-verified"
 DATASET="${DATASET:-SWE-bench/SWE-bench_Verified}"
 
-# eval-swebench-verified.sh 는 --limit-new/TUNE_NO 가 필요 없으므로 기본값을 인자로 채워 검증을 통과시킨다.
-TUNE_NO="${TUNE_NO:-0}"
+# eval script needs no --limit-new/SCRIPT_VER; fill defaults to pass validation.
+SCRIPT_VER="${SCRIPT_VER:-0}"
 main_common --limit-new 1
 
 RUN_DIR="$RUN_ROOT"
@@ -47,7 +47,7 @@ TIMEOUT="${TIMEOUT:-1800}"
 
 log(){ echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
-# ── 증분 평가 대상 계산: eval/raw 의 harness 리포트에 이미 포함된 인스턴스는 제외 ──
+# ── compute incremental eval targets: skip instances already in eval/raw harness reports ──
 python3 - "$PRED_JSONL" "$EVAL_RAW_DIR" > /tmp/swebv-eval-pending.jsonl <<'PY'
 import json, os, sys
 preds_path, eval_raw = sys.argv[1], sys.argv[2]
@@ -65,7 +65,7 @@ if os.path.isdir(eval_raw):
         for key in ("completed_ids", "submitted_ids", "resolved_ids", "unresolved_ids"):
             for iid in rep.get(key) or []:
                 done.add(iid)
-    # 레거시: per-instance report.json 스캔
+    # legacy: scan per-instance report.json
     for root, _, files in os.walk(eval_raw):
         if "report.json" in files:
             try:
@@ -95,7 +95,7 @@ if [[ "$PENDING_COUNT" -eq 0 ]]; then
 else
     log "Evaluating $PENDING_COUNT instance(s) via swebench harness (max_workers=$MAX_WORKERS, timeout=${TIMEOUT}s)"
 
-    # ── 공식 swebench harness 실행 (uv run --with swebench) ──
+    # ── run official swebench harness (uv run --with swebench) ──
     RUN_ID_ARG="benchkit-run-$RUN_ID"
     set -x
     uv run --with swebench python -m swebench.harness.run_evaluation \
@@ -111,12 +111,12 @@ else
     log "Harness evaluation done. Outputs in $EVAL_RAW_DIR"
 fi
 
-# ── summary.json / breakdown.json 생성 ──
+# ── generate summary.json / breakdown.json ──
 python3 - "$EVAL_RAW_DIR" "$EVAL_DIR" "$PRED_JSONL" <<'PY'
 import json, os, sys
 eval_raw, eval_dir, preds_path = sys.argv[1], sys.argv[2], sys.argv[3]
 
-# harness 단일 리포트 파일 (openai__<model>.<run_id>.json) 또는 per-instance report.json
+# harness single-report file (openai__<model>.<run_id>.json) or per-instance report.json
 reports = {}
 harness_report = None
 if os.path.isdir(eval_raw):
@@ -147,7 +147,7 @@ if harness_report is not None:
     resolved = list(harness_report.get("resolved_ids") or [])
     unresolved = list(harness_report.get("unresolved_ids") or [])
     missing = list(harness_report.get("empty_patch_ids") or [])
-    # harness 리포트의 resolved/unresolved 를 per-instance report 로 채움
+    # backfill per-instance report from harness resolved/unresolved
     for iid in resolved:
         reports.setdefault(iid, {"resolved": True})
     for iid in unresolved:

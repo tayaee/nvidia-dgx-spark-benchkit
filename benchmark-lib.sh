@@ -3,20 +3,48 @@ set -Eeuo pipefail
 die(){ echo "ERROR: $*" >&2; exit 2; }
 
 # ──────────────────────────────────────────────────────────────
-# 타깃(테스트 목표) = bench official name + model name + model url
+# target (test goal) = bench official name + model name + model url
 # results/
-# └── <target-key>/                  예: qwen3.8-27b__swebench-verified__spark1.local-30000
+# └── <target-key>/                  e.g. qwen3.8-27b__swebench-verified__spark1.local-30000
 #     ├── target.json                { bench, model, model_url, active_run_id, last_run_at }
 #     ├── comments.json              { "run-1": "...", ... }
-#     └── run-1/, run-2/, ...        ← 벤치 결과 누적
+#     └── run-1/, run-2/, ...        ← bench results accumulate here
 #
-# RUN_ID 미지정 → target 의 active_run_id 자동 사용.
-# RUN_ID 명시   → 해당 run 재개 (없으면 생성).
-# New Run(웹, 미래) → active_run_id += 1.
+# RUN_ID unset → use the target's active_run_id.
+# RUN_ID set   → resume that run (create if missing).
+# New Run (web, future) → active_run_id += 1.
 # ──────────────────────────────────────────────────────────────
 
-# target 키 계산. BENCHMARK / MODEL_NAME / OPENAI_BASE_URL 이 필요하다.
-# url 은 호스트:포트 형태로 줄이고, 나머지는 안전한 파일명 문자만 남긴다.
+# Server defaults. Scripts and callers may override via env.
+DEFAULT_ENDPOINT="${DEFAULT_ENDPOINT:-http://spark1.local:30000/v1}"
+DEFAULT_MODEL="${DEFAULT_MODEL:-qwen3.8-27b}"
+
+# Resolve and export the model/endpoint.
+#
+# target_key derives the results directory from model name + url, so this must
+# run BEFORE target_root (→ bench_root). Skipping it leaks results into
+# results/unknown__<bench>__unknown/ and splits one experiment in two.
+# main_common calls it, so individual scripts need not bother.
+#
+# Idempotent: already-set values are kept, so it is safe even when a script
+# detected and exported the model itself.
+resolve_model_target(){
+  local url="${OPENAI_BASE_URL:-${BENCKKIT_ENDPOINT:-$DEFAULT_ENDPOINT}}"
+  export OPENAI_BASE_URL="$url" BENCKKIT_ENDPOINT="$url"
+
+  local model="${MODEL_NAME:-${BENCKKIT_MODEL:-}}"
+  if [[ -z "$model" ]]; then
+    # Autodetect via /v1/models. Fall back to DEFAULT_MODEL so a down server
+    # does not divert the results path to "unknown".
+    model="$(curl -sf --max-time 10 "$url/models" \
+      | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"][0]["id"])' 2>/dev/null || true)"
+    [[ -n "$model" ]] || model="$DEFAULT_MODEL"
+  fi
+  export MODEL_NAME="$model" BENCKKIT_MODEL="$model"
+}
+
+# Compute the target key. Needs BENCHMARK / MODEL_NAME / OPENAI_BASE_URL.
+# The url is reduced to host-port; only filename-safe chars survive.
 target_key(){
   local model="${MODEL_NAME:-${BENCKKIT_MODEL:-unknown}}"
   local url="${OPENAI_BASE_URL:-${BENCKKIT_ENDPOINT:-unknown}}"
@@ -27,7 +55,7 @@ target_key(){
     | tr ' /' '__' | tr -cd 'A-Za-z0-9_.-'
 }
 
-# target 디렉터리 경로 결정 (존재하면 반환, 없으면 생성 + target.json 초기화)
+# Resolve the target directory (return if present, else create + init target.json).
 target_root(){
   local key
   key="$(target_key)"
@@ -40,7 +68,7 @@ target_root(){
   [[ -f "$TARGET_ROOT/comments.json" ]] || echo '{}' > "$TARGET_ROOT/comments.json"
 }
 
-# active_run_id 를 target.json 에서 읽는다 (없으면 1).
+# Read active_run_id from target.json (default 1).
 active_run_id(){
   python3 - "$TARGET_ROOT/target.json" <<'PY'
 import json, sys
@@ -52,7 +80,7 @@ print(int(m.get("active_run_id", 1)))
 PY
 }
 
-# run 번호 결정: RUN_ID 미지정 → active, 명시 → 해당 값.
+# Pick the run number: RUN_ID unset → active, set → that value.
 resolve_run_id(){
   if [[ -n "${RUN_ID:-}" ]]; then
     [[ "$RUN_ID" =~ ^[0-9]+$ ]] || die 'RUN_ID must be a non-negative integer'
@@ -62,7 +90,7 @@ resolve_run_id(){
   export RUN_ID
 }
 
-# run 루트 결정 + 디렉터리/state/manifest 준비.
+# Resolve the run root and prepare directories/state/manifest.
 bench_root(){
   [[ -n "${BENCHMARK:-}" ]] || die 'BENCHMARK is not set'
   target_root
@@ -71,7 +99,7 @@ bench_root(){
   mkdir -p "$RUN_ROOT"/{predictions/raw,predictions/canonical,eval/input,eval/raw,logs,archive}
   touch "$RUN_ROOT/state.jsonl"
   [[ -e "$RUN_ROOT/manifest.json" ]] || printf '{"run_id":%s,"benchmark":"%s","dataset":"%s","created_at":"%s","status":"active"}\n' "$RUN_ID" "${BENCHMARK:-unknown}" "${DATASET:-}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$RUN_ROOT/manifest.json"
-  # target.last_run_at 갱신
+  # Refresh target.last_run_at
   python3 - "$TARGET_ROOT/target.json" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" <<'PY'
 import json, sys
 path, ts = sys.argv[1], sys.argv[2]
@@ -86,12 +114,12 @@ PY
 }
 
 main_common(){
-  LIMIT_NEW=""          # --limit-new / --limit-new-any: 몇 개 시도할지 (0/비어있으면 무제한)
-  LIMIT_NEW_OK=0        # --limit-new-ok N: 성공이 N개 나올 때까지 시도 (0 = 비활성)
-  LIMIT_MAX_TRY=0       # --limit-max-try N: 최대 N번 시도 (0 = 무제한)
+  LIMIT_NEW=""          # --limit-new / --limit-new-any: how many to try (0/empty = unlimited)
+  LIMIT_NEW_OK=0        # --limit-new-ok N: retry until N pass (0 = disabled)
+  LIMIT_MAX_TRY=0       # --limit-max-try N: at most N batches (0 = unlimited)
   LIMIT_MODE="any"      # any | ok
-  LIMIT_ANY_SET=0       # --limit-new/--limit-new-any 지정 여부
-  LIMIT_OK_SET=0        # --limit-new-ok 지정 여부
+  LIMIT_ANY_SET=0       # whether --limit-new/--limit-new-any was given
+  LIMIT_OK_SET=0        # whether --limit-new-ok was given
   while (($#)); do
     case "$1" in
       --limit-new|--limit-new-any) (($#>1)) || die 'missing --limit-new value'; LIMIT_NEW="$2"; LIMIT_MODE="any"; LIMIT_ANY_SET=1; shift 2;;
@@ -100,28 +128,30 @@ main_common(){
       --limit-new-ok=*) LIMIT_NEW="${1#*=}"; LIMIT_MODE="ok"; LIMIT_OK_SET=1; shift;;
       --limit-max-try) (($#>1)) || die 'missing --limit-max-try value'; LIMIT_MAX_TRY="$2"; shift 2;;
       --limit-max-try=*) LIMIT_MAX_TRY="${1#*=}"; shift;;
-      -h|--help) echo "usage: RUN_ID=N TUNE_NO=N $0 [--limit-new[-any] N | --limit-new-ok N] [--limit-max-try N]"; exit 0;;
+      -h|--help) echo "usage: RUN_ID=N SCRIPT_VER=N $0 [--limit-new[-any] N | --limit-new-ok N] [--limit-max-try N]"; exit 0;;
       *) die "unknown argument: $1";;
     esac
   done
-  [[ "${TUNE_NO:-}" =~ ^[0-9]+$ ]] || die 'TUNE_NO is required'
-  # 미지정 시 LIMIT_NEW=0 (시도 제한 없음)
+  [[ "${SCRIPT_VER:-}" =~ ^[0-9]+$ ]] || die 'SCRIPT_VER is required'
+  # Unset → LIMIT_NEW=0 (no attempt cap)
   LIMIT_NEW="${LIMIT_NEW:-0}"
   [[ "$LIMIT_NEW" =~ ^[0-9]+$ ]] || die '--limit-new must be a non-negative integer'
   [[ "$LIMIT_MAX_TRY" =~ ^[0-9]+$ ]] || die '--limit-max-try must be a non-negative integer'
-  # --limit-new-ok 와 --limit-new/--limit-new-any 는 상호배타: 둘 다 지정하면 에러
+  # --limit-new-ok and --limit-new/--limit-new-any are mutually exclusive
   if (( LIMIT_ANY_SET && LIMIT_OK_SET )); then
     die '--limit-new/--limit-new-any and --limit-new-ok are mutually exclusive'
   fi
+  # The results path depends on model/endpoint, so resolve before bench_root.
+  resolve_model_target
   bench_root
 }
 
-# manifest.json 에 실험 메타데이터를 갱신한다 (기존 키는 보존).
-# 벤치 스크립트는 실행 시점의 모델/서버 정보를 env 로 넘겨준다:
-#   MODEL_NAME / BENCKKIT_MODEL — 모델명
-#   OPENAI_BASE_URL / BENCKKIT_ENDPOINT — 모델 URL
-#   SERVER_SCRIPT — 서버 기동 스크립트 이름 (spark1 의 run.sh 등)
-#   SERVER_HOST — 서버 호스트
+# Update experiment metadata in manifest.json (existing keys preserved).
+# Bench scripts pass the run-time model/server info via env:
+#   MODEL_NAME / BENCKKIT_MODEL — model name
+#   OPENAI_BASE_URL / BENCKKIT_ENDPOINT — model url
+#   SERVER_SCRIPT — server launch script (e.g. run.sh on spark1)
+#   SERVER_HOST — server host
 update_manifest(){
   local manifest="$RUN_ROOT/manifest.json"
   python3 - "$manifest" "${MODEL_NAME:-${BENCKKIT_MODEL:-}}" \
@@ -144,7 +174,7 @@ json.dump(m, open(path, "w"), ensure_ascii=False, indent=2)
 PY
 }
 
-# run 주석 설정 (웹 Update 버튼 → API → 이 함수)
+# Set a run comment (web Update button → API → this function).
 set_run_comment(){
   local run_id="${1:?run_id required}" comment="${2:-}"
   [[ -n "${TARGET_ROOT:-}" ]] || target_root
@@ -163,44 +193,63 @@ json.dump(c, open(path, "w"), ensure_ascii=False, indent=2)
 PY
 }
 
+# Preserve the launch script as archive/vNNN-<name>.
+#
+# SCRIPT_VER is the config (server/client settings) version number, so:
+#   - same SCRIPT_VER + identical script → plain rerun; keep the archive, pass.
+#   - same SCRIPT_VER + changed script   → config changed; demand a bump.
+# Bumping SCRIPT_VER for a plain rerun would pollute the config history.
 archive_script(){
   local src="$1" name="$2"
-  local dst="$RUN_ROOT/archive/tune$(printf '%03d' "$TUNE_NO")-$name"
-  [[ ! -e "$dst" ]] || die "archive exists: $dst; increment TUNE_NO"
-  { echo "# RUN_ID=$RUN_ID TUNE_NO=$TUNE_NO BENCHMARK=${BENCHMARK:-}"; cat "$src"; } > "$dst"
+  local ver dst prev
+  ver="v$(printf '%03d' "$SCRIPT_VER")"
+  dst="$RUN_ROOT/archive/$ver-$name"
+  # Existing archive for this version: the new vNNN name, or the legacy
+  # tuneNNN name written before the rename.
+  prev="$dst"
+  [[ -e "$prev" ]] || prev="$RUN_ROOT/archive/tune$(printf '%03d' "$SCRIPT_VER")-$name"
+  if [[ -e "$prev" ]]; then
+    # Line 1 is the meta header this function prepends; skip it when diffing.
+    if diff -q <(tail -n +2 "$prev") "$src" >/dev/null 2>&1; then
+      echo "[archive] $(basename "$prev") unchanged — same config, rerun (SCRIPT_VER kept)"
+      return 0
+    fi
+    die "$src differs from archived $(basename "$prev"): config changed, increment SCRIPT_VER"
+  fi
+  { echo "# RUN_ID=$RUN_ID SCRIPT_VER=$SCRIPT_VER BENCHMARK=${BENCHMARK:-}"; cat "$src"; } > "$dst"
   chmod +x "$dst"
 }
 
-# --limit-new-ok / --limit-max-try 루프.
-# 벤치 스크립트는 다음 두 함수를 정의해야 한다:
-#   run_batch()            — 1회 배치 실행 (여러 인스턴스를 동시에 시도)
-#   count_new_ok()         — 이번 배치에서 새로 "성공"한 인스턴스 수를 stdout 으로 출력
+# --limit-new-ok / --limit-max-try loop.
+# Bench scripts must define these two functions:
+#   run_batch()            — run one batch (may try several instances at once)
+#   count_new_ok()         — print how many instances newly passed in this batch
 #
-# 동작:
-#   - LIMIT_MODE=ok  : 성공이 LIMIT_NEW 개 쌓일 때까지 반복 (run_batch 호출)
-#   - LIMIT_MODE=any : run_batch 를 1회 호출 (기존 --limit-new 동작)
-#   - LIMIT_MAX_TRY  : run_batch 총 호출 수 상한 (0 = 무제한)
+# Behavior:
+#   - LIMIT_MODE=ok  : repeat until LIMIT_NEW passes accumulate
+#   - LIMIT_MODE=any : call run_batch once (original --limit-new behavior)
+#   - LIMIT_MAX_TRY  : cap on total run_batch calls (0 = unlimited)
 run_with_limits(){
   local batches=0
   local ok_total=0
   while :; do
-    # 최대 시도 횟수 초과 시 중단
+    # Stop once the batch cap is reached
     if (( LIMIT_MAX_TRY > 0 && batches >= LIMIT_MAX_TRY )); then
       log "Stopping: reached --limit-max-try $LIMIT_MAX_TRY batch(es)"
       return 0
     fi
-    # ok 모드에서 목표 달성 시 중단
+    # ok mode: stop when the target is met
     if [[ "$LIMIT_MODE" == "ok" && "$ok_total" -ge "$LIMIT_NEW" ]]; then
       log "Stopping: reached --limit-new-ok $LIMIT_NEW (ok so far: $ok_total)"
       return 0
     fi
-    # any 모드: 1회 실행 후 중단 (기존 --limit-new 동작)
+    # any mode: one run, then stop (original --limit-new behavior)
     if [[ "$LIMIT_MODE" == "any" && "$batches" -ge 1 ]]; then
       return 0
     fi
     (( batches += 1 ))
     log "=== batch $batches (ok so far: $ok_total) ==="
-    # 배치 실패(모델/검증 오류 등)는 다음 배치로 넘어간다
+    # A failed batch (model/verifier error) moves on to the next one
     run_batch || log "batch $batches finished with errors; continuing"
     local got
     got="$(count_new_ok)"

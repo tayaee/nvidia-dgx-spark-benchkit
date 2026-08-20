@@ -119,11 +119,11 @@ def create_app(results_root: str | os.PathLike | None = None) -> FastAPI:
         return summary, breakdown
 
     def _last_tune_script(run_dir: Path) -> str:
-        """Return the most recent archived start script name (highest tuneNNN)."""
+        """Return the most recent archived start script name (highest vNNN)."""
         archive_dir = run_dir / "archive"
         if not archive_dir.is_dir():
             return ""
-        scripts = sorted(archive_dir.glob("tune*-start-*.sh"))
+        scripts = sorted(archive_dir.glob("v*-start-*.sh"))
         return scripts[-1].name if scripts else ""
 
     def _is_running(run_dir: Path) -> bool:
@@ -281,7 +281,7 @@ def create_app(results_root: str | os.PathLike | None = None) -> FastAPI:
         except Exception as e:
             return {"error": f"{type(e).__name__}: {e}"}
 
-    # url → server_up 캐시 (5초)
+    # url → server_up cache (5s)
     _up_cache: dict[str, tuple[float, bool]] = {}
 
     def _server_up(url: str) -> bool:
@@ -380,7 +380,7 @@ def create_app(results_root: str | os.PathLike | None = None) -> FastAPI:
                 task["status"] = "error"
                 task["error"] = f"agent exit {p.returncode}"
                 return
-            # 커밋 전 상태 확인
+            # check status before committing
             rc, out, _ = _git(["status", "--porcelain"])
             if rc != 0 or not out.strip():
                 task["status"] = "done"

@@ -1,104 +1,113 @@
-# Cheatsheet — SWE-bench Verified 실행
+# Cheatsheet — running SWE-bench Verified
 
-Qwen SGLang 서버(`spark1.local:30000`, 모델 `qwen3.8-27b`)에 연결해
-SWE-bench Verified 문제를 실제로 풀고, 공식 swebench harness로 평가한다.
+Connects to the Qwen SGLang server (`spark1.local:30000`, model `qwen3.8-27b`),
+solves SWE-bench Verified tasks, and evaluates with the official swebench harness.
 
-## 1. 문제 풀기 (클라이언트)
+## 1. Solving tasks (client)
 
 ```bash
-# 첫 실행: 새 문제 2개
-RUN_ID=1 TUNE_NO=1 PARALLELISM=2 ./start-swebench-verified.sh --limit-new 2
+# First run: solve 2 new tasks
+RUN_ID=1 SCRIPT_VER=1 PARALLELISM=2 ./start-swebench-verified.sh --limit-new 2
 
-# 재실행: 같은 TUNE_NO 는 archive 충돌 → TUNE_NO 증가
-# 완료된 인스턴스는 자동 스킵되고, 새 문제 N 개를 푼다
-RUN_ID=1 TUNE_NO=2 PARALLELISM=2 ./start-swebench-verified.sh --limit-new 2
+# Plain rerun (no config change): keep SCRIPT_VER
+# Completed instances are auto-skipped; solve up to N new ones.
+RUN_ID=1 SCRIPT_VER=1 PARALLELISM=2 ./start-swebench-verified.sh --limit-new 2
+
+# Increment SCRIPT_VER only when the config changes (server options, script edits).
+RUN_ID=1 SCRIPT_VER=2 PARALLELISM=2 ./start-swebench-verified.sh --limit-new 2
 ```
 
-필수 환경변수:
+Required environment variables:
 
-| 변수 | 설명 | 기본값 |
-|---|---|---|
-| `RUN_ID` | 실험 묶음 ID (양의 정수) | — (필수) |
-| `TUNE_NO` | 설정 변경 시 증가 (양의 정수) | — (필수) |
-| `PARALLELISM` | 동시 worker 수 | `2` |
-| `OPENAI_BASE_URL` | 서버 endpoint | `http://spark1.local:30000/v1` |
-| `OPENAI_API_KEY` | 서버 키 | `none` |
-| `MODEL_NAME` | 명시적 모델명 (없으면 `/v1/models` 자동 탐지) | 자동 |
+| Variable          | Description                                                                                                | Default                       |
+|-------------------|------------------------------------------------------------------------------------------------------------|-------------------------------|
+| `RUN_ID`          | Experiment bundle ID (non-negative integer)                                                                | — (required)                  |
+| `SCRIPT_VER`      | Config (server/client settings) version number. Increment **only** when the config changes (non-negative) | — (required)                  |
+| `PARALLELISM`     | Concurrent worker count                                                                                    | `2`                           |
+| `OPENAI_BASE_URL` | Server endpoint                                                                                            | `http://spark1.local:30000/v1` |
+| `OPENAI_API_KEY`  | Server key                                                                                                 | `none`                        |
+| `MODEL_NAME`      | Explicit model name (auto-detected via `/v1/models` if unset)                                              | auto                          |
 
-동작:
+Behavior:
 
-- mini-swe-agent(litellm 기반)로 실제 인스턴스를 푼다 (Docker 컨테이너 사용).
-- `results/run-$RUN_ID/predictions/raw/` 에 누적 (trajectory, `preds.json`).
-- 완료 인스턴스는 스킵, `--limit-new N` 만큼 새 문제만 푼다.
-- 실행 스크립트는 `results/run-$RUN_ID/archive/tuneNNN-start-swebench-verified.sh` 로 보존.
-- 완료 레코드는 `results/run-$RUN_ID/state.jsonl` 에 append.
+- mini-swe-agent (litellm-based) solves real instances (Docker containers).
+- Accumulates in `results/run-$RUN_ID/predictions/raw/` (trajectory, `preds.json`).
+- Completed instances are skipped; only `--limit-new N` new instances are run.
+- The launch script is archived as
+  `results/run-$RUN_ID/archive/vNNN-start-swebench-verified.sh`.
+  If the same `SCRIPT_VER` is re-run with identical content, it passes through
+  (plain rerun); if the content changed, the script aborts and demands a bump.
+- Completion records append to `results/run-$RUN_ID/state.jsonl`.
 
-참고: 문제마다 소요 시간이 크게 다르다 (간단한 문제 5~10분, 어려운 문제 40~50분+).
+Note: per-instance runtime varies widely (5–10 min for easy, 40–50 min+ for hard).
 
-## 2. 평가 (공식 swebench harness, 로컬 Docker)
+## 2. Evaluation (official swebench harness, local Docker)
 
 ```bash
 RUN_ID=1 ./eval.sh
 ```
 
-동작:
+Behavior:
 
-- `predictions/canonical/predictions.jsonl` 을 공식 `swebench.harness.run_evaluation` 에 전달.
-- 이미 평가된 인스턴스는 건너뛰고 미평가분만 평가 (증분).
-- 결과: `results/run-$RUN_ID/eval/raw/<model>.<run>.json` (harness 원본),
+- Passes `predictions/canonical/predictions.jsonl` to the official
+  `swebench.harness.run_evaluation`.
+- Skips already-evaluated instances (incremental).
+- Outputs: `results/run-$RUN_ID/eval/raw/<model>.<run>.json` (raw harness),
   `eval/summary.json`, `eval/breakdown.json`.
 
-환경변수: `MAX_WORKERS`(기본 4), `TIMEOUT`(인스턴스당 테스트 타임아웃, 기본 1800s).
+Environment variables: `MAX_WORKERS` (default 4), `TIMEOUT` (per-instance test
+timeout, default 1800s).
 
-## 3. 리포트
+## 3. Reporting
 
 ```bash
 RUN_ID=1 ./report.sh
 ```
 
-`eval/summary.json` 을 읽어 resolved/unresolved/missing/not-evaluated 및
-`resolved / total` 점수를 출력한다. 로그 스크래핑 없음.
+Reads `eval/summary.json` and prints resolved / unresolved / missing /
+not-evaluated counts and `resolved / total` score. No log scraping.
 
-## 4. 전체 파이프라인
+## 4. Full pipeline
 
 ```bash
-RUN_ID=1 TUNE_NO=1 ./start-swebench-verified.sh --limit-new 2   # 풀기
-RUN_ID=1 ./eval.sh                                               # 평가
-RUN_ID=1 ./report.sh                                             # 리포트
+RUN_ID=1 SCRIPT_VER=1 ./start-swebench-verified.sh --limit-new 2   # solve
+RUN_ID=1 ./eval.sh                                                  # evaluate
+RUN_ID=1 ./report.sh                                                # report
 ```
 
-## 결과 레이아웃
+## Results layout
 
 ```text
 results/run-$RUN_ID/
 ├── manifest.json
 ├── state.jsonl
 ├── predictions/
-│   ├── raw/          # mini-swe-agent 원본 (traj, preds.json) — 절대 덮어쓰지 않음
-│   └── canonical/    # swebench harness용 predictions.jsonl
+│   ├── raw/          # mini-swe-agent raw output (traj, preds.json) — never overwritten
+│   └── canonical/    # predictions.jsonl for swebench harness
 ├── eval/
 │   ├── input/
-│   ├── raw/          # harness 원본 리포트
+│   ├── raw/          # raw harness reports
 │   ├── summary.json
 │   └── breakdown.json
 ├── logs/
-└── archive/          # 실행 스크립트 보존 (tuneNNN-*)
+└── archive/          # archived launch scripts (vNNN-*)
 ```
 
-## 서버 상태 확인
+## Server status
 
 ```bash
-# 모델 노출 확인
+# Check exposed models
 curl -s http://spark1.local:30000/v1/models
 
-# 서버 로그 (spark1.local)
+# Server logs (spark1.local)
 ssh user1@spark1.local 'docker logs --tail 20 qwen38-sglang-run'
 ```
 
-## 주의사항
+## Notes
 
-- `spark1.local` 의 Qwen 서버는 **30000 포트** (기존 스크립트의 8000 기본값 아님).
-- mini-swe-agent 전역 설정 `~/.config/mini-swe-agent/.env` 가 8000 포트를
-  가리킬 수 있으니, 실행 시 `OPENAI_BASE_URL` 로 반드시 30000 포트를 지정한다.
-- eval/report 는 `TUNE_NO` 가 필요 없다.
-- 같은 RUN 디렉터리의 기존 데이터는 삭제하지 않고 누적한다.
+- The Qwen server on `spark1.local` listens on **port 30000** (not the legacy
+  8000 default).
+- mini-swe-agent's global config (`~/.config/mini-swe-agent/.env`) may point at
+  port 8000, so always set `OPENAI_BASE_URL` to the 30000 endpoint at runtime.
+- `eval.sh` / `report.sh` do not need `SCRIPT_VER`.
+- The same RUN directory accumulates, never deletes.

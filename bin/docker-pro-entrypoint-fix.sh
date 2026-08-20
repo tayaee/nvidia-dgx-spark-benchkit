@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# docker-pro-entrypoint-fix.sh — mini-swe-agent용 docker 래퍼
+# docker-pro-entrypoint-fix.sh — mini-swe-agent docker wrapper
 #
-# SWE-bench Pro 이미지(jefzda/sweap-images)는 ENTRYPOINT=/bin/bash 라서
-# mini-swe-agent 가 실행하는 `docker run ... <image> sleep 2h` 가 실패한다.
-# 이 래퍼는 run 명령에서 --entrypoint /usr/bin/sleep 를 삽입하고
-# trailing `sleep <timeout>` 을 초 단위로 변환해 컨테이너가 정상 유지되게 한다.
+# SWE-bench Pro images (jefzda/sweap-images) ship with ENTRYPOINT=/bin/bash, so
+# `docker run ... <image> sleep 2h` invoked by mini-swe-agent fails. This wrapper
+# injects --entrypoint /usr/bin/sleep into `run` invocations and converts the
+# trailing `sleep <timeout>` to seconds so the container stays alive.
 #
-# 사용: MSWEA_DOCKER_EXECUTABLE=/path/to/this/script
+# Use: MSWEA_DOCKER_EXECUTABLE=/path/to/this/script
 set -Eeuo pipefail
 
-# sleep 시간 변환: 2h -> 7200, 30m -> 1800, 45s -> 45 (기본 2h=7200)
+# sleep time conversion: 2h -> 7200, 30m -> 1800, 45s -> 45 (default 2h=7200)
 to_seconds(){
   local v="$1"
   case "$v" in
@@ -29,7 +29,7 @@ if [[ "$cmd" == "run" ]]; then
   # trailing `sleep <timeout>` -> `--entrypoint /usr/bin/sleep <image> <seconds>`
   if (( n >= 2 )) && [[ "${out[$((n-2))]}" == "sleep" ]]; then
     timeout_sec="$(to_seconds "${out[$((n-1))]}")"
-    # 이미지 인덱스: 첫 번째 non-flag 인자 (옵션 값은 건너뜀)
+    # image index: first non-flag arg (skip option values)
     img_idx=-1
     skip_next=0
     for ((i=0; i<n-2; i++)); do
@@ -43,13 +43,13 @@ if [[ "$cmd" == "run" ]]; then
       esac
     done
     if (( img_idx >= 0 )); then
-      # out: [옵션들..., <image>, sleep, <timeout>]
-      #      -> [옵션들..., --entrypoint /usr/bin/sleep, <image>, <seconds>]
+      # out: [opts..., <image>, sleep, <timeout>]
+      #      -> [opts..., --entrypoint /usr/bin/sleep, <image>, <seconds>]
       out=(
-        "${out[@]:0:$((n-3))}"                       # 옵션들 (image 앞까지)
-        "--entrypoint" "/usr/bin/sleep"              # entrypoint 오버라이드
-        "${out[@]:$((n-3)):1}"                       # 이미지
-        "$timeout_sec"                               # 초 단위 timeout
+        "${out[@]:0:$((n-3))}"                       # opts (through before image)
+        "--entrypoint" "/usr/bin/sleep"              # entrypoint override
+        "${out[@]:$((n-3)):1}"                       # image
+        "$timeout_sec"                               # timeout in seconds
       )
     fi
   fi

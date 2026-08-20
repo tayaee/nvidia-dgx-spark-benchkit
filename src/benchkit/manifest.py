@@ -89,15 +89,26 @@ def load_manifest(path: Path) -> dict:
     return json.loads(Path(path).read_text())
 
 
-def merge_legacy_env(payload: dict, run_id: str | None, tune_no: str | None) -> dict:
-    """Accept legacy RUN_ID / TUNE_NO env vars as canonical aliases.
+def merge_legacy_env(
+    payload: dict,
+    run_id: str | None,
+    script_ver: str | None,
+    tune_no: str | None = None,
+) -> dict:
+    """Accept legacy RUN_ID / SCRIPT_VER (TUNE_NO) env vars as canonical aliases.
 
     The new manifest carries its own canonical IDs; legacy environment
     variables are preserved as aliases only — they never replace the
     canonical experiment_id / config_bundle_id.
+
+    SCRIPT_VER is the canonical config (server/client settings) version
+    number. TUNE_NO is kept as a documented legacy alias for backwards
+    compatibility; callers should prefer SCRIPT_VER.
     """
     if run_id:
         payload.setdefault("run_id_alias", run_id)
+    if script_ver:
+        payload.setdefault("script_ver_alias", script_ver)
     if tune_no:
         payload.setdefault("tune_no_alias", tune_no)
     return payload

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# web.sh — benchkit 결과 대시보드 (FastAPI) 실행
+# web.sh — run the benchkit results dashboard (FastAPI).
 #
 # Usage:
 #   ./web.sh [--port 8001] [--host 127.0.0.1]
 #
-# results/ 디렉터리를 읽어 벤치마크 진행/점수를 웹으로 보여준다.
+# Reads the results/ directory and serves benchmark progress / scores.
 set -Eeuo pipefail
 cd "$(cd "$(dirname "$0")" && pwd)"
 
