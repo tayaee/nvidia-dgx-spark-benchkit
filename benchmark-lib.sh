@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 die(){ echo "ERROR: $*" >&2; exit 2; }
+log(){ echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
 # ──────────────────────────────────────────────────────────────
 # target (test goal) = bench official name + model name + model url
@@ -10,14 +11,88 @@ die(){ echo "ERROR: $*" >&2; exit 2; }
 #     ├── comments.json              { "run-1": "...", ... }
 #     └── run-1/, run-2/, ...        ← bench results accumulate here
 #
-# RUN_ID unset → use the target's active_run_id.
-# RUN_ID set   → resume that run (create if missing).
-# New Run (web, future) → active_run_id += 1.
+# RUN_ID / SCRIPT_VER resolution (priority high → low):
+#   1. environment variable on the command line
+#   2. last-used value persisted in .cache/<script-basename>.env
+#   3. literal default (1)
+# After a successful run, the resolved values are written back to the cache
+# so the next invocation of the same script (without env overrides) re-opens
+# the same RUN_ID / SCRIPT_VER.
+#
+# RUN_ID was previously resolved from target.active_run_id when unset. The
+# cache replaces that fallback so the CLI behaviour does not depend on the
+# target's web-managed active_run_id.
 # ──────────────────────────────────────────────────────────────
 
 # Server defaults. Scripts and callers may override via env.
 DEFAULT_ENDPOINT="${DEFAULT_ENDPOINT:-http://spark1.local:30000/v1}"
 DEFAULT_MODEL="${DEFAULT_MODEL:-qwen3.8-27b}"
+
+# .cache/<basename of $0>.env holds last-used RUN_ID / SCRIPT_VER per script.
+# Eval/report scripts do not use it (they don't take SCRIPT_VER); start-*.sh
+# does. Override the path with BENCHKIT_CACHE_FILE for tests.
+DEFAULT_CACHE_FILE="${BENCHKIT_CACHE_FILE:-.cache/$(basename "$0").env}"
+
+# Echo the resolved value for a single integer variable.
+#
+# Priority: env var (already set) > .cache/<script>.env > literal default (1).
+# Falls back to 1 silently if the cache file is absent, missing the key, or
+# has a non-integer value (a warning is logged to stderr in that case).
+#
+# Usage:  val="$(resolve_default VAR_NAME [DEFAULT] [CACHE_FILE])"
+resolve_default(){
+  local var="$1"
+  local default="${2:-1}"
+  local cf="${3:-$DEFAULT_CACHE_FILE}"
+  # Already set in env: caller wins.
+  if [[ -n "${!var:-}" ]]; then
+    printf '%s' "${!var}"
+    return 0
+  fi
+  # Cache file missing: literal default.
+  if [[ ! -r "$cf" ]]; then
+    printf '%s' "$default"
+    return 0
+  fi
+  # Pick first matching key=value (whitespace-tolerant, comment-tolerant).
+  local val
+  val="$(awk -F= -v k="$var" '
+    /^[[:space:]]*#/ {next}
+    /^[[:space:]]*$/ {next}
+    $1==k {print $2; exit}
+  ' "$cf" 2>/dev/null || true)"
+  if [[ -z "$val" ]]; then
+    printf '%s' "$default"
+    return 0
+  fi
+  if [[ "$val" =~ ^[0-9]+$ ]]; then
+    printf '%s' "$val"
+    return 0
+  fi
+  echo "warning: $cf has invalid $var='$val'; falling back to $default" >&2
+  printf '%s' "$default"
+}
+
+# Persist current values of the named variables to a .cache/<script>.env file.
+# Overwrites the file (atomic via a tmp + mv). Values are not validated here;
+# main_common validates before saving.
+#
+# Usage:  write_defaults CACHE_FILE VAR1 VAR2 ...
+write_defaults(){
+  local cf="$1"; shift
+  [[ -n "$cf" ]] || { echo "write_defaults: cache file path required" >&2; return 2; }
+  mkdir -p "$(dirname "$cf")"
+  local tmp="$cf.tmp.$$"
+  {
+    echo "# last-used values for $(basename "$0")"
+    echo "# auto-written by benchmark-lib.sh; edit by hand if needed."
+    local var
+    for var in "$@"; do
+      printf '%s=%s\n' "$var" "${!var:-}"
+    done
+  } > "$tmp"
+  mv "$tmp" "$cf"
+}
 
 # Resolve and export the model/endpoint.
 #
@@ -128,11 +203,33 @@ main_common(){
       --limit-new-ok=*) LIMIT_NEW="${1#*=}"; LIMIT_MODE="ok"; LIMIT_OK_SET=1; shift;;
       --limit-max-try) (($#>1)) || die 'missing --limit-max-try value'; LIMIT_MAX_TRY="$2"; shift 2;;
       --limit-max-try=*) LIMIT_MAX_TRY="${1#*=}"; shift;;
-      -h|--help) echo "usage: RUN_ID=N SCRIPT_VER=N $0 [--limit-new[-any] N | --limit-new-ok N] [--limit-max-try N]"; exit 0;;
+      -h|--help)
+        cat <<EOF
+usage: RUN_ID=N SCRIPT_VER=N $0 [opts]
+
+  RUN_ID     non-negative integer experiment-bundle ID
+  SCRIPT_VER non-negative integer config (server/client settings) version
+             Both default to the last-used value from $DEFAULT_CACHE_FILE
+             (or 1 if neither env nor cache is set).
+
+opts:
+  --limit-new[-any] N | --limit-new-ok N
+  --limit-max-try N
+EOF
+        exit 0;;
       *) die "unknown argument: $1";;
     esac
   done
-  [[ "${SCRIPT_VER:-}" =~ ^[0-9]+$ ]] || die 'SCRIPT_VER is required'
+  # Resolve SCRIPT_VER (env > cache > 1) and validate.
+  SCRIPT_VER="$(resolve_default SCRIPT_VER 1)"
+  [[ "$SCRIPT_VER" =~ ^[0-9]+$ ]] || die "SCRIPT_VER must be a non-negative integer (got: '$SCRIPT_VER')"
+  export SCRIPT_VER
+  # Resolve RUN_ID (env > cache > 1) BEFORE bench_root so the run directory is
+  # correct. resolve_run_id() inside bench_root will only re-validate+export
+  # since RUN_ID is already set.
+  RUN_ID="$(resolve_default RUN_ID 1)"
+  [[ "$RUN_ID" =~ ^[0-9]+$ ]] || die "RUN_ID must be a non-negative integer (got: '$RUN_ID')"
+  export RUN_ID
   # Unset → LIMIT_NEW=0 (no attempt cap)
   LIMIT_NEW="${LIMIT_NEW:-0}"
   [[ "$LIMIT_NEW" =~ ^[0-9]+$ ]] || die '--limit-new must be a non-negative integer'
@@ -144,6 +241,9 @@ main_common(){
   # The results path depends on model/endpoint, so resolve before bench_root.
   resolve_model_target
   bench_root
+  # Persist the resolved values for next time. Atomic write so partial files
+  # can't confuse a future run.
+  write_defaults "$DEFAULT_CACHE_FILE" RUN_ID SCRIPT_VER
 }
 
 # Update experiment metadata in manifest.json (existing keys preserved).

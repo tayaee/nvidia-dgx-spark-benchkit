@@ -13,6 +13,7 @@ Serves:
 from __future__ import annotations
 
 import asyncio
+import calendar
 import json
 import os
 import shlex
@@ -31,8 +32,36 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 REPO_ROOT = Path(__file__).resolve().parents[3]
 VIBE_CONFIG = REPO_ROOT / "vibe-coding.json"
 
+# Known dataset sizes per benchmark.  Used as the upper bound for the
+# "Total" stat so the dashboard can show e.g. "Total 500" for an
+# SWE-bench Verified run even when only a handful of instances have
+# been attempted so far.  Sizes reflect the public test-split counts.
+BENCHMARK_TOTALS: dict[str, int] = {
+    "swebench-verified": 500,
+    "swebench-pro": 1234,
+    "terminal-bench-2.0": 76,
+}
+
 # Internal layout dirs that must never be treated as runs/instances
 _INTERNAL_DIRS = {"archive", "eval", "logs", "predictions", "raw", "canonical", "input"}
+
+
+def _fmt_duration(seconds: float | None) -> str:
+    """Compact human-readable duration: 3d 20h / 4h 30m / 12m / 45s / —."""
+    if seconds is None:
+        return "—"
+    if seconds < 0:
+        return "—"
+    s = int(seconds)
+    if s < 60:
+        return f"{s}s"
+    if s < 3600:
+        return f"{s // 60}m"
+    if s < 86400:
+        m = s % 3600
+        return f"{s // 3600}h {m // 60}m" if m >= 60 else f"{s // 3600}h"
+    h = s % 86400
+    return f"{s // 86400}d {h // 3600}h" if h >= 3600 else f"{s // 86400}d"
 
 
 def create_app(results_root: str | os.PathLike | None = None) -> FastAPI:
@@ -137,6 +166,124 @@ def create_app(results_root: str | os.PathLike | None = None) -> FastAPI:
         except Exception:
             return False
 
+    def _compute_stats(run_dir: Path, summary: dict, manifest: dict, benchmark: str = "") -> dict:
+        """Compute the redesigned stats block for a run.
+
+        Returns total/attempted/resolved/failed/in_progress/unattempted counts
+        plus derived progress_pct / eta_seconds / score_pct / eta_text /
+        progress_text / score_text ready for direct UI rendering.
+
+        Definitions:
+          total        = best estimate of dataset size — max(attempted,
+                         total_predicted from summary, canonical predictions
+                         count).  Captures the full dataset size once the run
+                         accumulates predictions, while still giving a useful
+                         lower bound for early runs.
+          attempted    = number of distinct instances that have been worked
+                         on (resolved + already-evaluated non-resolved + any
+                         pending from the eval queue).  Falls back to the
+                         state.jsonl line count when the eval summary is
+                         unavailable.
+          resolved     = summary.resolved
+          failed       = summary.unresolved + summary.missing
+          in_progress  = 0 when not running; otherwise max(0, attempted_total
+                         − attempted) where attempted_total is the model’s
+                         queued slice (solved + failed + not_evaluated).
+                         Captures the gap between the slice the model asked
+                         to predict and the instances with a verdict.
+          unattempted  = max(0, total − attempted − in_progress)
+          progress_pct = (attempted + in_progress) / total * 100
+          score_pct    = resolved / total * 100
+          eta_seconds  = (total − attempted) / throughput, where throughput
+                         = attempted / elapsed_seconds since the run started.
+        All derived fields are also serialised as human-readable strings
+        via the *_text helpers so the frontend can render them directly.
+        """
+        def _count_lines(path: Path) -> int:
+            try:
+                return sum(1 for line in path.read_text().splitlines() if line.strip())
+            except Exception:
+                return 0
+
+        resolved = int(summary.get("resolved", 0) or 0)
+        unresolved = int(summary.get("unresolved", 0) or 0)
+        missing = int(summary.get("missing", 0) or 0)
+        total_predicted = int(summary.get("total_predicted", 0) or 0)
+        failed = unresolved + missing
+
+        # attempted = instances that have a verdict (resolved / failed).
+        # In a not-yet-evaluated run, total_predicted is the model’s slice
+        # size; until eval runs, treat all of them as attempted-but-pending.
+        if total_predicted:
+            attempted = resolved + failed
+        else:
+            attempted = _count_lines(run_dir / "state.jsonl")
+
+        # Canonical predictions count (one row per instance the model was
+        # asked to predict on) — used as a lower bound on total when the
+        # eval summary is missing.
+        canonical = 0
+        canon_path = run_dir / "predictions" / "canonical" / "predictions.jsonl"
+        if canon_path.exists():
+            try:
+                canonical = sum(1 for line in canon_path.read_text().splitlines() if line.strip())
+            except Exception:
+                canonical = 0
+
+        # Use the known dataset size as the upper bound so partial runs
+        # still display the full benchmark size (e.g. 500 for swebench-verified).
+        ds_total = BENCHMARK_TOTALS.get(benchmark, 0)
+        total = max(attempted, total_predicted, canonical, ds_total)
+        if total == 0:
+            total = attempted  # last-resort: at least show what we have
+
+        running = _is_running(run_dir)
+        if running:
+            queued = total_predicted if total_predicted else attempted
+            in_progress = max(0, queued - attempted)
+        else:
+            in_progress = 0
+
+        unattempted = max(0, total - attempted - in_progress)
+
+        progress_done = attempted + in_progress
+        progress_pct = (progress_done / total * 100) if total else 0.0
+        score_pct = (resolved / total * 100) if total else 0.0
+
+        # ETA: throughput = attempted / elapsed since run start.
+        eta_seconds: float | None = None
+        created = str(manifest.get("created_at", "") or "")
+        if created:
+            try:
+                # ISO 8601 with trailing Z (e.g. 2024-01-02T03:04:05Z).
+                # Use calendar.timegm to interpret the parsed struct as UTC
+                # — time.mktime would treat it as local time and skew the
+                # elapsed calculation on non-UTC hosts.
+                ts = created.rstrip("Z")
+                started = calendar.timegm(time.strptime(ts, "%Y-%m-%dT%H:%M:%S"))
+                elapsed = max(1.0, time.time() - started)
+                if attempted > 0 and total > attempted:
+                    eta_seconds = (total - attempted) * elapsed / attempted
+                elif total <= attempted:
+                    eta_seconds = 0.0
+            except Exception:
+                eta_seconds = None
+
+        return {
+            "total": total,
+            "attempted": attempted,
+            "resolved": resolved,
+            "failed": failed,
+            "in_progress": in_progress,
+            "unattempted": unattempted,
+            "progress_pct": round(progress_pct, 1),
+            "score_pct": round(score_pct, 1),
+            "eta_seconds": eta_seconds,
+            "eta_text": _fmt_duration(eta_seconds),
+            "progress_text": f"{progress_done}/{total} = {round(progress_pct, 1)}%",
+            "score_text": f"{resolved}/{total} = {round(score_pct, 1)}%",
+        }
+
     def _run_meta(run_dir: Path, manifest: dict) -> dict:
         return {
             "model": manifest.get("model", ""),
@@ -162,6 +309,7 @@ def create_app(results_root: str | os.PathLike | None = None) -> FastAPI:
                 attempted = sum(1 for line in state.read_text().splitlines() if line.strip())
             except Exception:
                 attempted = 0
+        stats = _compute_stats(run_dir, summary, manifest, manifest.get("benchmark", ""))
         item = {
             "run_id": run_dir.name,
             "attempted": attempted,
@@ -170,6 +318,7 @@ def create_app(results_root: str | os.PathLike | None = None) -> FastAPI:
             "score": summary.get("resolved", 0),
             "dataset": manifest.get("dataset", ""),
             "created_at": manifest.get("created_at", ""),
+            "stats": stats,
         }
         item.update(_run_meta(run_dir, manifest))
         return item
@@ -613,6 +762,7 @@ def create_app(results_root: str | os.PathLike | None = None) -> FastAPI:
             "created_at": manifest.get("created_at", ""),
             "comment": _comments(tdir).get(run_id, ""),
             "summary": summary,
+            "stats": _compute_stats(run_dir, summary, manifest, manifest.get("benchmark", "")),
             "instances": instances,
             "experiment": meta,
             "server_up": _server_up(meta.get("model_url", "")),

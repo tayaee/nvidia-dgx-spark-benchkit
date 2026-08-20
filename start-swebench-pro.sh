@@ -14,10 +14,12 @@
 #   - Launch script archived under results/run-$RUN_ID/archive/ (archive/vNNN-...).
 #
 # Environment:
-#   RUN_ID            — required, non-negative integer
-#   SCRIPT_VER        — required, non-negative integer. Config (server/client
-#                       settings) version number. Increment only when the
-#                       config changes; plain reruns keep the same value.
+#   RUN_ID            — non-negative integer. Defaults to the last-used value
+#                       from .cache/start-swebench-pro.sh.env, or 1.
+#   SCRIPT_VER        — non-negative integer. Config (server/client settings)
+#                       version number. Defaults to the last-used cache value,
+#                       or 1. Increment only when the config changes; plain
+#                       reruns keep the same value.
 #   PARALLELISM       — worker count (default 2)
 #   OPENAI_BASE_URL   — default http://spark1.local:30000/v1
 #   OPENAI_API_KEY    — default none
@@ -50,7 +52,7 @@ if [[ -z "${MSWEA_DOCKER_EXECUTABLE:-}" ]]; then
     export MSWEA_DOCKER_EXECUTABLE="$(pwd)/bin/docker-pro-entrypoint-fix.sh"
 fi
 
-log(){ echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+# (log() is provided by benchmark-lib.sh)
 
 # ── Model resolution: autodetect via /v1/models ──
 if [[ -z "${MODEL_NAME:-}" ]]; then

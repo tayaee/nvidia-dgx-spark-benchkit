@@ -15,10 +15,12 @@
 #     results/run-$RUN_ID/deepswe-1.1/archive/ (archive/vNNN-...sh).
 #
 # Environment:
-#   RUN_ID            — required, non-negative integer
-#   SCRIPT_VER        — required, non-negative integer. Config (server/client
-#                       settings) version number. Increment only when the
-#                       config changes; plain reruns keep the same value.
+#   RUN_ID            — non-negative integer. Defaults to the last-used value
+#                       from .cache/start-deepswe-1.1.sh.env, or 1.
+#   SCRIPT_VER        — non-negative integer. Config (server/client settings)
+#                       version number. Defaults to the last-used cache value,
+#                       or 1. Increment only when the config changes; plain
+#                       reruns keep the same value.
 #   HF_TOKEN          — required for datacurve/deep-swe
 #   OPENAI_BASE_URL / BENCKKIT_ENDPOINT — default http://spark1.local:30000/v1
 #   MODEL_NAME / BENCKKIT_MODEL         — default qwen3.8-27b (auto-detected)
@@ -50,7 +52,7 @@ export SERVER_SCRIPT="${SERVER_SCRIPT:-~/git/dgx-spark-qwen38/run.sh}"
 export SERVER_HOST="${SERVER_HOST:-spark1.local}"
 update_manifest
 
-log(){ echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+# (log() is provided by benchmark-lib.sh)
 
 # ── archive: canonical launch script ──
 archive_script "$0" "start-deepswe-1.1.sh"

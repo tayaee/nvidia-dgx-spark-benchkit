@@ -113,6 +113,64 @@
   .sum-cell .l { font-size: 11px; color: var(--md-text-muted); }
   .sum-cell.res .n { color: var(--md-green); }
   .sum-cell.unres .n { color: var(--md-red); }
+  /* ── redesigned stat cards (Total / Attempted / In Progress / Unattempted / Progress / ETA / Score) ── */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    margin: 14px 0 4px;
+  }
+  .stats-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .stats-grid.cols-7 { grid-template-columns: repeat(4, 1fr); }
+  .stat-card {
+    background: var(--md-surface-variant); border: 1px solid var(--md-outline);
+    border-radius: var(--md-radius); padding: 10px 12px; min-height: 64px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .stat-card .l {
+    font-size: 11px; color: var(--md-text-muted);
+    text-transform: uppercase; letter-spacing: .03em; font-weight: 500;
+  }
+  .stat-card .n {
+    font-size: 20px; font-weight: 600; line-height: 1.15; margin-top: 2px;
+    color: var(--md-text); font-variant-numeric: tabular-nums;
+  }
+  .stat-card .sub {
+    font-size: 11px; color: var(--md-text-muted); margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-card.tone-resolved .n { color: var(--md-green); }
+  .stat-card.tone-failed .n { color: var(--md-red); }
+  .stat-card.tone-progress .n { color: var(--md-primary); }
+  .stat-card.tone-progress { background: var(--md-primary-soft); border-color: var(--md-primary-soft); }
+  .stat-card.tone-in-progress .n { color: var(--md-amber); }
+  .stat-card.tone-in-progress { background: var(--md-amber-soft); border-color: var(--md-amber-soft); }
+  .stat-card.tone-score .n { color: var(--md-green); }
+  .stat-card.tone-score.score-zero .n { color: var(--md-text-muted); }
+  .stat-card.tone-score.score-low .n { color: var(--md-amber); }
+  .stat-card.tone-score.score-bad .n { color: var(--md-red); }
+  /* compact stat strip for the landing page run cards */
+  .stats-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+    margin-top: 8px;
+  }
+  .stats-strip .cell {
+    background: var(--md-surface); border: 1px solid var(--md-outline);
+    border-radius: 8px; padding: 5px 6px; text-align: center;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .stats-strip .cell .n { font-size: 13px; font-weight: 600; line-height: 1.1; }
+  .stats-strip .cell .l { font-size: 9px; color: var(--md-text-muted); text-transform: uppercase; letter-spacing: .02em; }
+  .stats-strip .cell .sub { font-size: 9px; color: var(--md-text-muted); margin-top: 1px; line-height: 1.1; }
+  .stats-strip .cell.sub-resolved .sub .r { color: var(--md-green); font-weight: 600; }
+  .stats-strip .cell.sub-resolved .sub .f { color: var(--md-red); font-weight: 600; }
+  .stats-strip .cell.progress .n { color: var(--md-primary); }
+  .stats-strip .cell.score .n { color: var(--md-green); }
+  .stats-strip .cell.score-zero .n { color: var(--md-text-muted); }
+  .stats-strip .cell.score-low .n { color: var(--md-amber); }
+  .stats-strip .cell.score-bad .n { color: var(--md-red); }
+  @media (max-width: 480px) {
+    .stats-grid, .stats-grid.cols-3, .stats-grid.cols-7 { grid-template-columns: repeat(2, 1fr); }
+    .stats-strip { grid-template-columns: repeat(4, 1fr); }
+  }
   /* ── instance row ── */
   .inst { display: flex; align-items: center; gap: 10px; }
   .inst .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
@@ -314,6 +372,55 @@ function scoreClass(score, total) {
   if (total === 0) return "gray";
   const pct = score / total;
   return pct >= 0.5 ? "green" : pct > 0 ? "amber" : "red";
+}
+
+/* Score tone class for the redesigned stat cards (>=30% green, >0% amber, 0% red, no-data gray). */
+function scoreToneClass(pct) {
+  if (!pct || pct <= 0) return "score-bad";
+  if (pct < 30) return "score-low";
+  return "score";
+}
+
+function renderStatsCards(st) {
+  /* 7-cell detail card grid for the run-info page. */
+  const total = st.total ?? 0;
+  const attempted = st.attempted ?? 0;
+  const resolved = st.resolved ?? 0;
+  const failed = st.failed ?? 0;
+  const inProgress = st.in_progress ?? 0;
+  const unattempted = st.unattempted ?? 0;
+  const progressPct = st.progress_pct ?? 0;
+  const scorePct = st.score_pct ?? 0;
+  const etaText = st.eta_text ?? "—";
+  const scoreCls = scoreToneClass(scorePct);
+  return `
+    <div class="stat-card" data-stat="total"><div class="l">Total</div><div class="n">${total}</div></div>
+    <div class="stat-card" data-stat="attempted">
+      <div class="l">Attempted</div>
+      <div class="n">${attempted}</div>
+      <div class="sub"><span style="color:var(--md-green);font-weight:600">${resolved}</span> resolved / <span style="color:var(--md-red);font-weight:600">${failed}</span> failed</div>
+    </div>
+    <div class="stat-card tone-in-progress" data-stat="in-progress">
+      <div class="l">In Progress</div>
+      <div class="n">${inProgress}</div>
+    </div>
+    <div class="stat-card" data-stat="unattempted">
+      <div class="l">Unattempted</div>
+      <div class="n">${unattempted}</div>
+    </div>
+    <div class="stat-card tone-progress" data-stat="progress">
+      <div class="l">Progress</div>
+      <div class="n">${attempted + inProgress}/${total}</div>
+      <div class="sub">${progressPct}%</div>
+    </div>
+    <div class="stat-card" data-stat="eta">
+      <div class="l">ETA</div>
+      <div class="n">${etaText}</div>
+    </div>
+    <div class="stat-card tone-score ${scoreCls}" data-stat="score" style="grid-column: span 2">
+      <div class="l">Score</div>
+      <div class="n">${resolved}/${total} = ${scorePct}%</div>
+    </div>`;
 }
 
 /* ── view 1: targets list (most recently updated first) ── */
@@ -556,7 +663,17 @@ function _renderTargets(data) {
     // 현재 실행 중인 벤치 스크립트 (running 인 run 의 bench_script)
     const runningScripts = new Set(runs.filter(r => r.running).map(r => r.bench_script).filter(Boolean));
     for (const r of runs) {
-      const rpct = r.total ? Math.round((r.score / r.total) * 100) : 0;
+      const st = r.stats || {};
+      const total = st.total ?? 0;
+      const attempted = st.attempted ?? 0;
+      const resolved = st.resolved ?? 0;
+      const failed = st.failed ?? 0;
+      const inProgress = st.in_progress ?? 0;
+      const unattempted = st.unattempted ?? 0;
+      const progressPct = st.progress_pct ?? (total ? Math.round((attempted + inProgress) / total * 100) : 0);
+      const scorePct = st.score_pct ?? (total ? Math.round(resolved / total * 100) : 0);
+      const etaText = st.eta_text ?? "—";
+      const scoreCls = scoreToneClass(scorePct);
       const comment = t.comments[r.run_id] || "";
       const scriptRunning = runningScripts.has(r.bench_script);
       html += `
@@ -566,13 +683,20 @@ function _renderTargets(data) {
           ${r.bench_script
             ? `<a class="run-script-link" onclick="event.stopPropagation(); showRunScript('${esc(t.key)}','${esc(r.run_id)}')">${esc(r.bench_script)}</a>${scriptRunning ? ' <span class="endpoint up">RUNNING</span>' : ""}`
             : ""}
-          <span class="score ${scoreClass(r.score, r.total)}">${r.score}/${r.total}<small> · ${rpct}%</small></span>
+          <span class="score ${scoreClass(resolved, total)}">${resolved}/${total}<small> · ${scorePct}%</small></span>
         </div>
-        <div class="row2">
-          <span class="stat">Total <b>${r.total}</b></span>
-          <span class="stat">Attempts <b>${r.attempted}</b></span>
-          <span class="stat">Solved <b>${r.resolved}</b></span>
-          ${r.last_run_at ? `<span class="stat">${esc(r.last_run_at)}</span>` : ""}
+        <div class="stats-strip" data-run-stats="${esc(r.run_id)}">
+          <div class="cell"><div class="n">${total}</div><div class="l">Total</div></div>
+          <div class="cell sub-resolved">
+            <div class="n">${attempted}</div>
+            <div class="l">Attempted</div>
+            <div class="sub"><span class="r">${resolved}</span> / <span class="f">${failed}</span></div>
+          </div>
+          <div class="cell"><div class="n">${inProgress}</div><div class="l">In&nbsp;Progress</div></div>
+          <div class="cell"><div class="n">${unattempted}</div><div class="l">Unattempted</div></div>
+          <div class="cell progress"><div class="n">${attempted + inProgress}/${total}</div><div class="l">Progress · ${progressPct}%</div></div>
+          <div class="cell"><div class="n">${etaText}</div><div class="l">ETA</div></div>
+          <div class="cell ${scoreCls}"><div class="n">${resolved}/${total}</div><div class="l">Score · ${scorePct}%</div></div>
         </div>
         ${comment ? `<div class="row2" style="color:var(--md-text-muted);font-size:12px">💬 ${esc(comment)}</div>` : ""}
       </div>`;
@@ -599,8 +723,9 @@ async function openBench(key, runId) {
 function openBenchInner(d, key, runId) {
   const s = d.summary || {};
   const ex = d.experiment || {};
-  const pct = s.total_predicted ? Math.round((s.resolved / s.total_predicted) * 100) : 0;
-  const scoreCls = scoreClass(s.resolved || 0, s.total_predicted || 0);
+  const st = d.stats || {};
+  const scorePct = st.score_pct ?? 0;
+  const scoreCls = scoreToneClass(scorePct);
   const upPill = d.server_up ? '<span class="endpoint up" id="upPill">UP</span>' : "";
   const runningPill = ex.running ? '<span class="endpoint up" id="runningPill">RUNNING</span>' : "";
   let html = `
@@ -608,7 +733,7 @@ function openBenchInner(d, key, runId) {
       <div class="badges">
         <span class="badge gray">${esc(runId)}</span>
         <span class="badge gray">${esc(d.dataset || "")}</span>
-        <span class="badge ${scoreCls}">${s.resolved ?? 0} / ${s.total_predicted ?? 0} (${pct}%)</span>
+        <span class="badge ${scoreCls}">Score ${st.resolved ?? 0}/${st.total ?? 0} (${scorePct}%)</span>
       </div>
       <div class="meta-grid">
         <span class="k">Model</span><span class="v">${esc(ex.model || "-")}</span>
@@ -622,11 +747,9 @@ function openBenchInner(d, key, runId) {
         <input id="commentInput" style="flex:1;padding:8px 12px;border:1px solid var(--md-outline);border-radius:8px;font-size:13px" placeholder="Add a note for this run…" value="${esc(d.comment || "")}">
         <button onclick="updateComment('${esc(key)}','${esc(runId)}')" style="background:var(--md-primary);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px">Update</button>
       </div>
-      <div class="summary-grid">
-        <div class="sum-cell res"><div class="n">${s.resolved ?? 0}</div><div class="l">Resolved</div></div>
-        <div class="sum-cell unres"><div class="n">${s.unresolved ?? 0}</div><div class="l">Unresolved</div></div>
-        <div class="sum-cell"><div class="n">${s.missing ?? 0}</div><div class="l">Missing</div></div>
-        <div class="sum-cell"><div class="n">${s.not_evaluated ?? 0}</div><div class="l">Pending</div></div>
+      <div class="section">Stats</div>
+      <div class="stats-grid cols-7" id="statsGrid">
+        ${renderStatsCards(st)}
       </div>
       <div class="section">Instances (${(d.instances || []).length})</div>`;
     const instances = d.instances || [];
@@ -741,14 +864,21 @@ function connectWS() {
       if (t) {
         const r = (t.runs || []).find(x => x.run_id === _currentView.runId);
         if (r) {
-          const el = document.querySelector(".summary-grid");
-          if (el) {
-            const cells = el.querySelectorAll(".sum-cell .n");
-            if (cells.length >= 4 && cells[0]) cells[0].textContent = r.resolved;
-            if (cells[1]) cells[1].textContent = (r.total - r.resolved);
+          // Refresh the redesigned stats grid in place.
+          const grid = document.getElementById("statsGrid");
+          if (grid && r.stats) {
+            const tmp = document.createElement("div");
+            tmp.innerHTML = renderStatsCards(r.stats);
+            grid.innerHTML = tmp.firstElementChild ? tmp.firstElementChild.innerHTML : tmp.innerHTML;
           }
-          const scoreEl = document.querySelector(".badges .badge:last-child");
-          if (scoreEl) scoreEl.textContent = `${r.resolved} / ${r.total} (${r.total ? Math.round(r.resolved / r.total * 100) : 0}%)`;
+          // Score badge in the header.
+          const scoreBadge = document.querySelector(".badges .badge:last-child");
+          if (scoreBadge && r.stats) {
+            const pct = r.stats.score_pct ?? 0;
+            const cls = scoreToneClass(pct);
+            scoreBadge.className = `badge ${cls}`;
+            scoreBadge.textContent = `Score ${r.stats.resolved}/${r.stats.total} (${pct}%)`;
+          }
         }
         // UP pill after model url (server_up from snapshot)
         const urlCell = document.getElementById("modelUrlCell");

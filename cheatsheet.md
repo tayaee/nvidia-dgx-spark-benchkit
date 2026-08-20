@@ -15,18 +15,27 @@ RUN_ID=1 SCRIPT_VER=1 PARALLELISM=2 ./start-swebench-verified.sh --limit-new 2
 
 # Increment SCRIPT_VER only when the config changes (server options, script edits).
 RUN_ID=1 SCRIPT_VER=2 PARALLELISM=2 ./start-swebench-verified.sh --limit-new 2
+
+# After the first run, you can omit both vars: the script picks them up from
+# .cache/start-swebench-verified.sh.env (auto-written after each successful run).
+PARALLELISM=2 ./start-swebench-verified.sh --limit-new 2
 ```
 
-Required environment variables:
+Environment variables:
 
-| Variable          | Description                                                                                                | Default                       |
-|-------------------|------------------------------------------------------------------------------------------------------------|-------------------------------|
-| `RUN_ID`          | Experiment bundle ID (non-negative integer)                                                                | — (required)                  |
-| `SCRIPT_VER`      | Config (server/client settings) version number. Increment **only** when the config changes (non-negative) | — (required)                  |
-| `PARALLELISM`     | Concurrent worker count                                                                                    | `2`                           |
-| `OPENAI_BASE_URL` | Server endpoint                                                                                            | `http://spark1.local:30000/v1` |
-| `OPENAI_API_KEY`  | Server key                                                                                                 | `none`                        |
-| `MODEL_NAME`      | Explicit model name (auto-detected via `/v1/models` if unset)                                              | auto                          |
+| Variable          | Description                                                                                                | Default                                                |
+|-------------------|------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
+| `RUN_ID`          | Experiment bundle ID (non-negative integer)                                                                | last-used `.cache/<script>.env`, or 1                  |
+| `SCRIPT_VER`      | Config (server/client settings) version number. Increment **only** when the config changes (non-negative) | last-used `.cache/<script>.env`, or 1                  |
+| `PARALLELISM`     | Concurrent worker count                                                                                    | `2`                                                    |
+| `OPENAI_BASE_URL` | Server endpoint                                                                                            | `http://spark1.local:30000/v1`                          |
+| `OPENAI_API_KEY`  | Server key                                                                                                 | `none`                                                 |
+| `MODEL_NAME`      | Explicit model name (auto-detected via `/v1/models` if unset)                                              | auto                                                   |
+
+Resolution order for `RUN_ID` / `SCRIPT_VER`: (1) command-line env var, (2)
+`.cache/<script-basename>.env`, (3) literal `1`. The cache is written
+atomically after every successful run; delete the file to reset both values
+to 1.
 
 Behavior:
 
